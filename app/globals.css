@@ -1,1 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-black text-white antialiased overflow-x-hidden;
+    background-image: radial-gradient(circle at 25% 50%, rgba(15, 25, 45, 0.4) 0%, #000000 90%);
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl shadow-2xl;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  
+  .glow-border {
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-black/30;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-cyan-500/50 rounded-full;
+}
