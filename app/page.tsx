@@ -1,3 +1,4 @@
+// app/page.tsx — CORRECT VERSION
 "use client";
 
 import Navbar from "@/components/Navbar";
@@ -9,8 +10,8 @@ import EvolutionSystem from "@/components/EvolutionSystem";
 import Roadmap from "@/components/Roadmap";
 import TokenSection from "@/components/TokenSection";
 import Footer from "@/components/Footer";
-import StarsBackground from "@/components/StarsBackground";
-import MouseFollower from "@/components/MouseFollower";
+import StarsBackground from "@/components/StarsBackground";    // ← Correct name
+import MouseFollower from "@/components/MouseFollower";       // ← Correct name
 
 export default function Home() {
   return (
