@@ -4,7 +4,8 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* Removed invalid 'border-border' – use standard border styling */
+    @apply border-white/10;
   }
   
   body {
