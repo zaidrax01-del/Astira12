@@ -2,8 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
   background: radial-gradient(ellipse at bottom, #0d1b2a 0%, #000000 100%);
+}
+
+/* Slow spin animation for the floating planet in the hero */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
 }
