@@ -1,1 +1,36 @@
+import { motion } from 'framer-motion'
+import GlassPanel from '../components/ui/GlassPanel'
+import Badge from '../components/ui/Badge'
 
+const crew = [
+  { name: 'Astira', role: 'CEO & Founder', desc: 'Visionary driving the mission...', img: 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg', badge: { type: 'captain', label: 'Captain' }, twitter: 'https://x.com/astira_web3', telegram: 'https://t.me/Astira_web3' },
+  { name: 'Bob', role: 'Community Manager', desc: 'Nurturing the heart of Astira...', img: 'https://i.ibb.co/LdsRxcjr/IMG-20260421-122540-947.jpg', badge: { type: 'navigator', label: 'Navigator' }, twitter: 'https://x.com/bobbyd_great?s=11', telegram: 'https://t.me/bobbythe_great' },
+  { name: 'Tom', role: 'Project Promotion Manager', desc: 'Expanding the universe...', img: 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg', badge: { type: 'signal', label: 'Signal Booster' }, twitter: 'https://x.com/astira_tom3?s=11', telegram: 'https://t.me/astiraTom' },
+  { name: 'Croix', role: 'Poster Designer', desc: 'The artist behind the cosmic visuals...', img: 'https://i.ibb.co/G438tLCp/IMG-20260421-122548-698.jpg', badge: { type: 'artist', label: 'Cosmic Artist' }, twitter: 'https://x.com/croixonchain?s=11', telegram: 'https://t.me/croixonchain' },
+  { name: 'Zaidra', role: 'Website Developer', desc: 'Building the bridge between AI and UX...', img: 'https://i.ibb.co/sd0fSH9W/file-000000002f0471f4ae01242774e7141a.png', badge: { type: 'engineer', label: 'Quantum Engineer' }, twitter: 'https://x.com/zaidra_', telegram: 'https://t.me/zaidrax' },
+]
+
+export default function Team() {
+  return (
+    <div className="py-12">
+      <motion.h1 initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-5xl font-bold text-center bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-500 bg-clip-text text-transparent mb-16">Astira Fleet Command</motion.h1>
+      <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+        {crew.map((m, i) => (
+          <motion.div key={m.name} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i*0.1 }} whileHover={{ y: -10 }}>
+            <GlassPanel className="p-8 text-center h-full flex flex-col items-center border border-white/10">
+              <img src={m.img} className="w-28 h-28 rounded-full object-cover border-4 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.3)] mb-4" />
+              <h2 className="text-2xl font-bold">{m.name}</h2>
+              <p className="text-purple-400 uppercase text-sm mb-2">{m.role}</p>
+              <Badge type={m.badge.type} label={m.badge.label} />
+              <p className="text-gray-400 text-sm mt-4 flex-grow">{m.desc}</p>
+              <div className="flex gap-4 mt-4">
+                <a href={m.twitter} target="_blank" className="text-gray-400 hover:text-purple-400">𝕏</a>
+                <a href={m.telegram} target="_blank" className="text-gray-400 hover:text-purple-400">✈️</a>
+              </div>
+            </GlassPanel>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}
