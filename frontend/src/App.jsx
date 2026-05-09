@@ -1,16 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
-import { Web3ContextProvider } from './context/Web3Context'
-import Dashboard from './pages/Dashboard'
-import CosmicCompass from './pages/CosmicCompass'
-import PlanetCreator from './pages/PlanetCreator'
-import FusionLab from './pages/FusionLab'
-import Governance from './pages/Governance'
-import Rewards from './pages/Rewards'
-import HelpCenter from './pages/HelpCenter'
-import Crew from './pages/Crew'
-import PageTransition from './components/animations/PageTransition'
-import ParticleBackground from './components/animations/ParticleBackground'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import { Web3ContextProvider } from './context/Web3Context';
+import Dashboard from './pages/Dashboard';
+import CosmicCompass from './pages/CosmicCompass';
+import PlanetCreator from './pages/PlanetCreator';
+import FusionLab from './pages/FusionLab';
+import Governance from './pages/Governance';
+import Rewards from './pages/Rewards';
+import HelpCenter from './pages/HelpCenter';
+import Crew from './pages/Crew';
+import PageTransition from './components/animations/PageTransition';
+import ParticleBackground from './components/animations/ParticleBackground';
 
 export default function App() {
   return (
@@ -31,5 +31,5 @@ export default function App() {
         </AnimatePresence>
       </BrowserRouter>
     </Web3ContextProvider>
-  )
+  );
 }
