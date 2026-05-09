@@ -13,16 +13,19 @@ export default function ParticleBackground() {
     };
     resize();
     window.addEventListener("resize", resize);
-    for (let i = 0; i < 120; i++) {
+
+    for (let i = 0; i < 150; i++) {
       particles.push({
         x: Math.random() * w,
         y: Math.random() * h,
-        r: Math.random() * 1.5 + 0.5,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        glow: Math.random() > 0.7,
+        r: Math.random() * 1.8 + 0.2,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        glow: Math.random() > 0.8,
+        color: Math.random() > 0.5 ? "rgba(168,85,247,0.07)" : "rgba(34,211,238,0.05)",
       });
     }
+
     function draw() {
       ctx.clearRect(0, 0, w, h);
       particles.forEach((p) => {
@@ -32,13 +35,11 @@ export default function ParticleBackground() {
         if (p.y < 0 || p.y > h) p.vy *= -1;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.glow
-          ? "rgba(168,85,247,0.08)"
-          : "rgba(34,211,238,0.05)";
+        ctx.fillStyle = p.color;
         ctx.fill();
         if (p.glow) {
-          ctx.shadowColor = "rgba(168,85,247,0.4)";
-          ctx.shadowBlur = 4;
+          ctx.shadowColor = "rgba(168,85,247,0.5)";
+          ctx.shadowBlur = 6;
           ctx.fill();
           ctx.shadowBlur = 0;
         }
@@ -48,5 +49,5 @@ export default function ParticleBackground() {
     draw();
     return () => window.removeEventListener("resize", resize);
   }, []);
-  return <canvas ref={canvasRef} className="fixed inset-0 -z-10 bg-[#0a0a1a]" />;
+  return <canvas ref={canvasRef} className="fixed inset-0 -z-10 bg-[#02001a]" />;
 }
