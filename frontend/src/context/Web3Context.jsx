@@ -1,8 +1,8 @@
 import { createContext, useState, useEffect, useMemo } from 'react'
 import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
+import { PhantomWalletAdapter, SolflareWalletAdapter, TrustWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { clusterApiUrl, Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID, createTransferInstruction, getAssociatedTokenAddress } from '@solana/spl-token'
 import api from '../services/api'
@@ -15,7 +15,8 @@ const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
 const DECIMALS_USDC = 6
 
 const SolanaAuthProvider = ({ children }) => {
-  const { publicKey, signMessage, sendTransaction, connected, disconnect } = useWallet()
+  const { publicKey, signMessage, sendTransaction, connected, disconnect, select, wallet } = useWallet()
+  const { setVisible } = useWalletModal()
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [balance, setBalance] = useState(0)
   const [hasPremium, setHasPremium] = useState(false)
@@ -98,19 +99,20 @@ const SolanaAuthProvider = ({ children }) => {
     return signature
   }
 
+  // Exposed context value
+  const contextValue = useMemo(() => ({
+    account: publicKey ? publicKey.toBase58() : null,
+    balance,
+    token,
+    hasPremium,
+    connectWallet: () => setVisible(true),  // open wallet modal
+    disconnect,
+    sendSolPayment,
+    sendUsdcPayment,
+  }), [publicKey, balance, token, hasPremium, disconnect])
+
   return (
-    <Web3Context.Provider
-      value={{
-        account: publicKey ? publicKey.toBase58() : null,
-        balance,
-        token,
-        hasPremium,
-        connectWallet: () => {},
-        disconnect,
-        sendSolPayment,
-        sendUsdcPayment,
-      }}
-    >
+    <Web3Context.Provider value={contextValue}>
       {children}
     </Web3Context.Provider>
   )
@@ -119,7 +121,15 @@ const SolanaAuthProvider = ({ children }) => {
 export const Web3ContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
-  const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], [])
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new TrustWalletAdapter(),
+    ],
+    []
+  )
+
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect={false}>
