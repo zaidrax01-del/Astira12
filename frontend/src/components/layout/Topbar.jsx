@@ -5,6 +5,8 @@ import { useContext } from 'react';
 import { Web3Context } from '../../context/Web3Context';
 import GlowButton from '../ui/GlowButton';
 
+const LOGO_URL = 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg';  // <-- replace with official project logo if different
+
 export default function Topbar({ onMenuClick, sidebarOpen }) {
   const { connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
@@ -22,23 +24,33 @@ export default function Topbar({ onMenuClick, sidebarOpen }) {
         </Link>
       </div>
 
-      {/* Right: balance + connect button (custom, not WalletMultiButton) */}
-      <div className="flex items-center gap-4">
+      {/* Right: balance, connect/disconnect, project logo */}
+      <div className="flex items-center gap-3">
         {connected ? (
           <>
-            <div className="bg-white/5 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
-              <span className="text-cyan-300 font-semibold text-sm">{balance.toFixed(3)} SOL</span>
+            <div className="bg-white/5 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/10">
+              <span className="text-cyan-300 font-semibold text-xs">{balance.toFixed(3)} SOL</span>
             </div>
-            <GlowButton onClick={disconnect} className="!bg-red-600 !from-red-500 !to-pink-500 !px-4 !py-2 !text-sm">
+            <GlowButton
+              onClick={disconnect}
+              className="!bg-red-600 !from-red-500 !to-pink-500 !px-3 !py-1.5 !text-xs !rounded-full"
+            >
               Disconnect
             </GlowButton>
           </>
         ) : (
-          <GlowButton onClick={() => setVisible(true)}>
+          <GlowButton
+            onClick={() => setVisible(true)}
+            className="!px-4 !py-2 !text-xs !rounded-full"
+          >
             Connect Wallet
           </GlowButton>
         )}
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-lg">🌙</div>
+
+        {/* Project Logo */}
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+          <img src={LOGO_URL} alt="Astira Logo" className="w-full h-full object-cover" />
+        </div>
       </div>
     </header>
   );
