@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
 import {
@@ -7,7 +7,7 @@ import {
   TrustWalletAdapter,
   WalletConnectWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
-import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import {
   clusterApiUrl,
   Connection,
@@ -25,16 +25,18 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 
 export const Web3Context = createContext()
 
+export const useWeb3Context = () => useContext(Web3Context)
+
 const TREASURY_WALLET = new PublicKey('CvsGemPPo57RZuK7KFSvxn2VJqd5xhRHYWS5apQALdfN')
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
 const DECIMALS_USDC = 6
 
 const SolanaAuthProvider = ({ children }) => {
   const { publicKey, signMessage, sendTransaction, connected, disconnect } = useWallet()
-  const { setVisible } = useWalletModal()
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [balance, setBalance] = useState(0)
   const [hasPremium, setHasPremium] = useState(false)
+  const [showCustomModal, setShowCustomModal] = useState(false)   // <-- NEW
   const connection = useMemo(() => new Connection(clusterApiUrl(WalletAdapterNetwork.Mainnet)), [])
 
   // Real SOL balance
@@ -44,7 +46,6 @@ const SolanaAuthProvider = ({ children }) => {
     }
   }, [publicKey, connection])
 
-  // Authenticate – never force disconnect on error
   const authenticate = async () => {
     if (!publicKey || !signMessage) return
     try {
@@ -69,7 +70,6 @@ const SolanaAuthProvider = ({ children }) => {
     if (connected && publicKey) authenticate()
   }, [connected, publicKey])
 
-  // Payment functions – always require user approval in the wallet app
   const sendSolPayment = async (amountSOL) => {
     if (!publicKey || !sendTransaction) throw new Error('Wallet not connected')
     const lamports = amountSOL * 1e9
@@ -105,11 +105,13 @@ const SolanaAuthProvider = ({ children }) => {
     balance,
     token,
     hasPremium,
-    connectWallet: () => setVisible(true),   // opens wallet selection modal
+    showCustomModal,
+    openWalletModal: () => setShowCustomModal(true),   // <-- NEW
+    closeWalletModal: () => setShowCustomModal(false),
     disconnect,
     sendSolPayment,
     sendUsdcPayment,
-  }), [publicKey, balance, token, hasPremium, disconnect])
+  }), [publicKey, balance, token, hasPremium, showCustomModal, disconnect])
 
   return (
     <Web3Context.Provider value={contextValue}>
@@ -121,14 +123,13 @@ const SolanaAuthProvider = ({ children }) => {
 export const Web3ContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
-
   const wallets = useMemo(() => [
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),
     new TrustWalletAdapter(),
     new WalletConnectWalletAdapter({
       network,
-      options: { projectId: '00000000000000000000000000000000' }, // placeholder; replace if you have a real WalletConnect project ID
+      options: { projectId: '00000000000000000000000000000000' },
     }),
   ], [network])
 
