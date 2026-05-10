@@ -10,10 +10,13 @@ planet_bp = Blueprint('planet', __name__)
 
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
-    user_id = request.headers.get('X-User-Id')
-    user = User.query.get(user_id)
-    if not user:
+    wallet_address = request.headers.get('X-User-Id')
+    if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
+
+    user = User.query.filter_by(wallet_address=wallet_address).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
 
     if check_abuse(user):
         return jsonify({'error': 'Suspicious activity detected.'}), 403
@@ -22,15 +25,18 @@ def generate():
 
     data = request.get_json()
     prompt = data.get('prompt', '')
+
+    # Check generation eligibility
     if user.free_generations_used < 3:
         user.free_generations_used += 1
         db.session.commit()
         cost = 0
+    elif user.has_premium_generation:
+        cost = 0
     else:
-        cost = 50  # AST
-        if not deduct_ast(user, cost):
-            return jsonify({'error': 'Insufficient AST balance'}), 402
+        return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
+    # Generate planet image
     image_data = generate_planet_image(prompt)
     if not image_data:
         if cost > 0:
@@ -53,9 +59,6 @@ def generate():
     )
     db.session.add(planet)
     db.session.commit()
-
-    if cost > 0:
-        add_transaction(user, 'mint', -cost, 'planet_generation')
 
     if derivative_root:
         from services.reward_engine import create_reward_pool
