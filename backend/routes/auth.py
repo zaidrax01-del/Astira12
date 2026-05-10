@@ -1,20 +1,33 @@
 from flask import Blueprint, request, jsonify
 from models import db, User
 import uuid
-from eth_account.messages import encode_defunct
-from eth_account import Account
+import base58
+from nacl.signing import VerifyKey
 
 auth_bp = Blueprint('auth', __name__)
 
-def validate_wallet(address):
-    return len(address) == 42 and address.startswith('0x')
+def validate_solana_address(address):
+    try:
+        decoded = base58.b58decode(address)
+        return len(decoded) == 32
+    except:
+        return False
+
+def verify_signature(public_key: str, message: bytes, signature_b58: str) -> bool:
+    try:
+        verify_key = VerifyKey(base58.b58decode(public_key))
+        signature = base58.b58decode(signature_b58)
+        verify_key.verify(smessage=message, signature=signature)
+        return True
+    except:
+        return False
 
 @auth_bp.route('/nonce', methods=['POST'])
 def get_nonce():
     data = request.get_json()
     wallet = data.get('wallet_address')
-    if not validate_wallet(wallet):
-        return jsonify({'error': 'Invalid wallet address'}), 400
+    if not validate_solana_address(wallet):
+        return jsonify({'error': 'Invalid Solana address'}), 400
     user = User.query.filter_by(wallet_address=wallet).first()
     if not user:
         user = User(wallet_address=wallet, nonce=str(uuid.uuid4()))
@@ -26,16 +39,28 @@ def get_nonce():
 def verify():
     data = request.get_json()
     wallet = data.get('wallet_address')
-    signature = data.get('signature')
+    signature_b58 = data.get('signature')
     user = User.query.filter_by(wallet_address=wallet).first()
     if not user:
         return jsonify({'error': 'User not found'}), 404
     message = f"Sign this message to login to Astira: {user.nonce}"
-    message_hash = encode_defunct(text=message)
-    recovered = Account.recover_message(message_hash, signature=signature)
-    if recovered.lower() == wallet.lower():
+    message_bytes = message.encode('utf-8')
+    if verify_signature(wallet, message_bytes, signature_b58):
         user.nonce = str(uuid.uuid4())
         db.session.commit()
-        # Return a token (simplified, use JWT in production)
-        return jsonify({'token': 'mock-jwt-token', 'user_id': str(user.id)})
+        return jsonify({'token': 'sol-mock-jwt', 'user_id': str(user.id)})
     return jsonify({'error': 'Invalid signature'}), 401
+
+@auth_bp.route('/status', methods=['GET'])
+def user_status():
+    wallet_address = request.headers.get('X-User-Id')
+    if not wallet_address:
+        return jsonify({'error': 'Unauthorized'}), 401
+    user = User.query.filter_by(wallet_address=wallet_address).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({
+        'wallet_address': user.wallet_address,
+        'free_generations_used': user.free_generations_used,
+        'has_premium_generation': user.has_premium_generation,
+    })
