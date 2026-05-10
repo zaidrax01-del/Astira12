@@ -8,13 +8,15 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    wallet_address = db.Column(db.String(42), unique=True, nullable=False)
-    nonce = db.Column(db.String(32), nullable=False)
+    wallet_address = db.Column(db.String(44), unique=True, nullable=False)
+    nonce = db.Column(db.String(64), nullable=False)
     verification_status = db.Column(db.String(20), default='none')
     free_generations_used = db.Column(db.Integer, default=0)
+    has_premium_generation = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_ip = db.Column(db.String(45))
     risk_score = db.Column(db.Float, default=0.0)
+
     planets = db.relationship('Planet', backref='creator', lazy=True)
     transactions = db.relationship('TokenLedger', backref='user', lazy=True)
 
@@ -24,7 +26,7 @@ class Planet(db.Model):
     creator_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(100))
     description = db.Column(db.Text)
-    image_ipfs_hash = db.Column(db.String(256))   # can store URL or IPFS hash
+    image_ipfs_hash = db.Column(db.String(256))
     metadata_ipfs_hash = db.Column(db.String(64))
     style_signature = db.Column(JSONB)
     rarity = db.Column(db.String(20))
