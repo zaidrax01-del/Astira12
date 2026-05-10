@@ -5,7 +5,9 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   TrustWalletAdapter,
+  WalletConnectWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
+import { SolanaMobileWalletAdapter } from '@solana/wallet-adapter-mobile'
 import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import {
   clusterApiUrl,
@@ -24,93 +26,56 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 
 export const Web3Context = createContext()
 
-// ----- Constants -----
-const TREASURY_WALLET = new PublicKey(
-  'CvsGemPPo57RZuK7KFSvxn2VJqd5xhRHYWS5apQALdfN'
-)
+const TREASURY_WALLET = new PublicKey('CvsGemPPo57RZuK7KFSvxn2VJqd5xhRHYWS5apQALdfN')
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
 const DECIMALS_USDC = 6
 
-// ----- Inner auth provider (uses the wallet hook) -----
 const SolanaAuthProvider = ({ children }) => {
-  const { publicKey, signMessage, sendTransaction, connected, disconnect } =
-    useWallet()
+  const { publicKey, signMessage, sendTransaction, connected, disconnect } = useWallet()
   const { setVisible } = useWalletModal()
-
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [balance, setBalance] = useState(0)
   const [hasPremium, setHasPremium] = useState(false)
+  const connection = useMemo(() => new Connection(clusterApiUrl(WalletAdapterNetwork.Mainnet)), [])
 
-  const connection = useMemo(
-    () => new Connection(clusterApiUrl(WalletAdapterNetwork.Mainnet)),
-    []
-  )
-
-  // ----- Get real SOL balance -----
+  // Real SOL balance
   useEffect(() => {
     if (publicKey) {
-      connection
-        .getBalance(publicKey)
-        .then((bal) => setBalance(bal / 1e9))
-        .catch(() => {})
+      connection.getBalance(publicKey).then(bal => setBalance(bal / 1e9)).catch(() => {})
     }
   }, [publicKey, connection])
 
-  // ----- Authentication (sign the nonce) -----
+  // Authenticate – never force disconnect on error
   const authenticate = async () => {
     if (!publicKey || !signMessage) return
     try {
       const walletAddress = publicKey.toBase58()
-
-      // 1. Get nonce from backend
-      const nonceResp = await api.post('/auth/nonce', {
-        wallet_address: walletAddress,
-      })
+      const nonceResp = await api.post('/auth/nonce', { wallet_address: walletAddress })
       const message = `Sign this message to login to Astira: ${nonceResp.data.nonce}`
       const encodedMessage = new TextEncoder().encode(message)
-
-      // 2. Sign the message with the wallet
       const signature = await signMessage(encodedMessage)
-
-      // 3. Convert signature to base58
       const bs58 = (await import('bs58')).default
       const signatureBase58 = bs58.encode(signature)
-
-      // 4. Verify on backend
-      const verifyResp = await api.post('/auth/verify', {
-        wallet_address: walletAddress,
-        signature: signatureBase58,
-      })
+      const verifyResp = await api.post('/auth/verify', { wallet_address: walletAddress, signature: signatureBase58 })
       setToken(verifyResp.data.token)
       localStorage.setItem('token', verifyResp.data.token)
-
-      // 5. Fetch premium status
-      const statusResp = await api.get('/auth/status', {
-        headers: { 'X-User-Id': walletAddress },
-      })
+      const statusResp = await api.get('/auth/status', { headers: { 'X-User-Id': walletAddress } })
       setHasPremium(statusResp.data.has_premium_generation)
     } catch (err) {
-      // Backend sleeping? Keep the wallet connected so user can retry later.
       console.error('Auth error (wallet stays connected):', err)
-      // DO NOT disconnect – the wallet is still valid
     }
   }
 
-  // Run authentication when wallet connects
   useEffect(() => {
     if (connected && publicKey) authenticate()
   }, [connected, publicKey])
 
-  // ----- Payment helpers -----
+  // Payment functions – always require user approval in the wallet app
   const sendSolPayment = async (amountSOL) => {
     if (!publicKey || !sendTransaction) throw new Error('Wallet not connected')
     const lamports = amountSOL * 1e9
     const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: TREASURY_WALLET,
-        lamports,
-      })
+      SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: TREASURY_WALLET, lamports })
     )
     const { blockhash } = await connection.getLatestBlockhash()
     transaction.recentBlockhash = blockhash
@@ -122,24 +87,11 @@ const SolanaAuthProvider = ({ children }) => {
 
   const sendUsdcPayment = async (amountUSDC) => {
     if (!publicKey || !sendTransaction) throw new Error('Wallet not connected')
-    const fromTokenAccount = await getAssociatedTokenAddress(
-      USDC_MINT,
-      publicKey
-    )
-    const toTokenAccount = await getAssociatedTokenAddress(
-      USDC_MINT,
-      TREASURY_WALLET
-    )
+    const fromTokenAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey)
+    const toTokenAccount = await getAssociatedTokenAddress(USDC_MINT, TREASURY_WALLET)
     const amount = amountUSDC * 10 ** DECIMALS_USDC
     const transaction = new Transaction().add(
-      createTransferInstruction(
-        fromTokenAccount,
-        toTokenAccount,
-        publicKey,
-        amount,
-        [],
-        TOKEN_PROGRAM_ID
-      )
+      createTransferInstruction(fromTokenAccount, toTokenAccount, publicKey, amount, [], TOKEN_PROGRAM_ID)
     )
     const { blockhash } = await connection.getLatestBlockhash()
     transaction.recentBlockhash = blockhash
@@ -149,20 +101,16 @@ const SolanaAuthProvider = ({ children }) => {
     return signature
   }
 
-  // ----- Context value -----
-  const contextValue = useMemo(
-    () => ({
-      account: publicKey ? publicKey.toBase58() : null,
-      balance,
-      token,
-      hasPremium,
-      connectWallet: () => setVisible(true), // opens wallet selection modal
-      disconnect,
-      sendSolPayment,
-      sendUsdcPayment,
-    }),
-    [publicKey, balance, token, hasPremium, disconnect]
-  )
+  const contextValue = useMemo(() => ({
+    account: publicKey ? publicKey.toBase58() : null,
+    balance,
+    token,
+    hasPremium,
+    connectWallet: () => setVisible(true),   // opens wallet selection modal
+    disconnect,
+    sendSolPayment,
+    sendUsdcPayment,
+  }), [publicKey, balance, token, hasPremium, disconnect])
 
   return (
     <Web3Context.Provider value={contextValue}>
@@ -171,18 +119,28 @@ const SolanaAuthProvider = ({ children }) => {
   )
 }
 
-// ----- Top‑level provider -----
 export const Web3ContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
-  const wallets = useMemo(
-    () => [
+
+  // Wallets – order matters: mobile adapter first, then popular wallets, then WalletConnect
+  const wallets = useMemo(() => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    const list = [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new TrustWalletAdapter(),
-    ],
-    []
-  )
+      new WalletConnectWalletAdapter({ network, options: { projectId: 'astira' } }),
+    ]
+    if (isMobile) {
+      // Insert mobile wallet adapter at the front
+      list.unshift(new SolanaMobileWalletAdapter({
+        appIdentity: { name: 'Astira', uri: window.location.href, icon: 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg' },
+        authorizationResultCache: undefined, cluster: network,
+      }))
+    }
+    return list
+  }, [network])
 
   return (
     <ConnectionProvider endpoint={endpoint}>
