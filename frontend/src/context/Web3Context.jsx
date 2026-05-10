@@ -7,7 +7,6 @@ import {
   TrustWalletAdapter,
   WalletConnectWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
-import { SolanaMobileWalletAdapter } from '@solana/wallet-adapter-mobile'
 import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import {
   clusterApiUrl,
@@ -123,24 +122,15 @@ export const Web3ContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
 
-  // Wallets – order matters: mobile adapter first, then popular wallets, then WalletConnect
-  const wallets = useMemo(() => {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    const list = [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new TrustWalletAdapter(),
-      new WalletConnectWalletAdapter({ network, options: { projectId: 'astira' } }),
-    ]
-    if (isMobile) {
-      // Insert mobile wallet adapter at the front
-      list.unshift(new SolanaMobileWalletAdapter({
-        appIdentity: { name: 'Astira', uri: window.location.href, icon: 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg' },
-        authorizationResultCache: undefined, cluster: network,
-      }))
-    }
-    return list
-  }, [network])
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+    new TrustWalletAdapter(),
+    new WalletConnectWalletAdapter({
+      network,
+      options: { projectId: '00000000000000000000000000000000' }, // placeholder; replace if you have a real WalletConnect project ID
+    }),
+  ], [network])
 
   return (
     <ConnectionProvider endpoint={endpoint}>
