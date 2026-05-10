@@ -1,20 +1,16 @@
-import { Link } from 'react-router-dom';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useContext } from 'react';
-import { Web3Context } from '../../context/Web3Context';
-import GlowButton from '../ui/GlowButton';
+import { Link } from 'react-router-dom'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useWeb3Context } from '../../context/Web3Context'
+import GlowButton from '../ui/GlowButton'
 
-const LOGO_URL = 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg';  // <-- replace with official project logo if different
+const LOGO_URL = 'https://i.ibb.co/bMz81nMn/IMG-20260421-122500-468.jpg'
 
 export default function Topbar({ onMenuClick, sidebarOpen }) {
-  const { connected, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
-  const { balance } = useContext(Web3Context);
+  const { connected, disconnect } = useWallet()
+  const { balance, openWalletModal } = useWeb3Context()
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
-      {/* Left: sidebar toggle + logo */}
       <div className="flex items-center gap-4">
         <button onClick={onMenuClick} className="text-2xl hover:text-purple-400">
           {sidebarOpen ? '✕' : '☰'}
@@ -24,7 +20,6 @@ export default function Topbar({ onMenuClick, sidebarOpen }) {
         </Link>
       </div>
 
-      {/* Right: balance, connect/disconnect, project logo */}
       <div className="flex items-center gap-3">
         {connected ? (
           <>
@@ -40,18 +35,16 @@ export default function Topbar({ onMenuClick, sidebarOpen }) {
           </>
         ) : (
           <GlowButton
-            onClick={() => setVisible(true)}
+            onClick={openWalletModal}   // <-- opens custom modal
             className="!px-4 !py-2 !text-xs !rounded-full"
           >
             Connect Wallet
           </GlowButton>
         )}
-
-        {/* Project Logo */}
         <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
           <img src={LOGO_URL} alt="Astira Logo" className="w-full h-full object-cover" />
         </div>
       </div>
     </header>
-  );
+  )
 }
