@@ -7,7 +7,6 @@ import {
   TrustWalletAdapter,
   WalletConnectWalletAdapter,
 } from '@solana/wallet-adapter-wallets'
-import { SolanaMobileWalletAdapter } from '@solana/wallet-adapter-mobile'
 import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import {
   clusterApiUrl,
@@ -121,30 +120,15 @@ const SolanaAuthProvider = ({ children }) => {
 export const Web3ContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
-
-  const wallets = useMemo(() => {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    const base = [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new TrustWalletAdapter(),
-      new WalletConnectWalletAdapter({
-        network,
-        options: { projectId: '00000000000000000000000000000000' },
-      }),
-    ]
-    if (isMobile) {
-      // Mobile wallet adapter natively deep-links to wallets
-      base.unshift(
-        new SolanaMobileWalletAdapter({
-          appIdentity: { name: 'Astira', uri: window.location.origin },
-          authorizationResultCache: undefined,
-          cluster: network,
-        })
-      )
-    }
-    return base
-  }, [network])
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+    new TrustWalletAdapter(),
+    new WalletConnectWalletAdapter({
+      network,
+      options: { projectId: '00000000000000000000000000000000' },
+    }),
+  ], [network])
 
   return (
     <ConnectionProvider endpoint={endpoint}>
