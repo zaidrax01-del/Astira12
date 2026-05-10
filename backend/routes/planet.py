@@ -5,6 +5,7 @@ from services.lineage_service import check_derivative
 from services.token_service import deduct_ast, add_transaction
 from services.security import check_cooldown, check_abuse
 from utils.ipfs import upload_to_ipfs
+import uuid
 
 planet_bp = Blueprint('planet', __name__)
 
@@ -14,9 +15,17 @@ def generate():
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
 
+    # Auto-create user if not exists
     user = User.query.filter_by(wallet_address=wallet_address).first()
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        user = User(
+            wallet_address=wallet_address,
+            nonce=str(uuid.uuid4()),
+            verification_status='none',
+            free_generations_used=0
+        )
+        db.session.add(user)
+        db.session.commit()
 
     if check_abuse(user):
         return jsonify({'error': 'Suspicious activity detected.'}), 403
