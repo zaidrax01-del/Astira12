@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify
 from models import db, User, Planet
 from services.ai_service import generate_planet_image, extract_style_signature
 from services.lineage_service import check_derivative
-from services.token_service import deduct_ast, add_transaction
 from services.security import check_cooldown, check_abuse
 from utils.ipfs import upload_to_ipfs
 import uuid
 
 planet_bp = Blueprint('planet', __name__)
+
+# Fallback image used if AI generation or IPFS upload fails
+FALLBACK_IMAGE = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
 
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
@@ -15,7 +17,6 @@ def generate():
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # Auto-create user if not exists
     user = User.query.filter_by(wallet_address=wallet_address).first()
     if not user:
         user = User(
@@ -35,7 +36,6 @@ def generate():
     data = request.get_json()
     prompt = data.get('prompt', '')
 
-    # Check generation eligibility
     if user.free_generations_used < 3:
         user.free_generations_used += 1
         db.session.commit()
@@ -45,21 +45,24 @@ def generate():
     else:
         return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
-    # Generate planet image
+    # Generate planet image (AI or placeholder)
     image_data = generate_planet_image(prompt)
     if not image_data:
-        if cost > 0:
-            add_transaction(user, 'refund', cost, 'failed_gen')
-        return jsonify({'error': 'AI generation failed'}), 500
+        # If AI completely fails, still create planet with fallback image
+        ipfs_hash = FALLBACK_IMAGE
+    else:
+        ipfs_hash = upload_to_ipfs(image_data)
+        if not ipfs_hash:
+            ipfs_hash = FALLBACK_IMAGE
 
-    ipfs_hash = upload_to_ipfs(image_data)
-    style_sig = extract_style_signature(image_data)
+    style_sig = extract_style_signature(image_data) if image_data else []
 
-    derivative_root, similarity = check_derivative(style_sig)
+    derivative_root, similarity = check_derivative(style_sig) if style_sig else (None, 0)
+
     planet = Planet(
         creator_id=user.id,
         name=f"Planet #{Planet.query.count()+1}",
-        image_ipfs_hash=ipfs_hash,
+        image_ipfs_hash=ipfs_hash,          # This is now always a full URL
         style_signature=style_sig,
         rarity='common',
         planet_type='terrestrial',
@@ -75,6 +78,6 @@ def generate():
 
     return jsonify({
         'planet_id': str(planet.id),
-        'image_url': f"https://gateway.pinata.cloud/ipfs/{ipfs_hash}",
+        'image_url': ipfs_hash,             # Already a full URL
         'derivative': bool(derivative_root)
     })
