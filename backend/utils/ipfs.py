@@ -2,17 +2,21 @@ import requests
 from flask import current_app
 
 def upload_to_ipfs(data):
-    api_key = current_app.config['PINATA_API_KEY']
+    api_key = current_app.config.get('PINATA_API_KEY')
     if not api_key:
-        # Return a mock hash
-        return 'QmMockHash12345'
-    url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
-    headers = {
-        "pinata_api_key": api_key,
-        "pinata_secret_api_key": current_app.config['PINATA_SECRET_KEY']
-    }
-    files = {'file': ('planet.png', data)}
-    resp = requests.post(url, files=files, headers=headers)
-    if resp.status_code == 200:
-        return resp.json()['IpfsHash']
-    return None
+        # Return the Astira moon placeholder image URL directly
+        return "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
+
+    try:
+        url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+        headers = {
+            "pinata_api_key": api_key,
+            "pinata_secret_api_key": current_app.config.get('PINATA_SECRET_KEY')
+        }
+        files = {'file': ('planet.png', data)}
+        resp = requests.post(url, files=files, headers=headers)
+        if resp.status_code == 200:
+            return resp.json()['IpfsHash']
+        return None
+    except Exception:
+        return None
