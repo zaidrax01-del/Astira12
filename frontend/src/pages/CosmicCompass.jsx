@@ -7,11 +7,23 @@ import api from '../services/api'
 import GlowButton from '../components/ui/GlowButton'
 import * as THREE from 'three'
 
-// 3D Planet
+// 3D Planet component – fixed texture loading
 function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
   const meshRef = useRef()
   const [hovered, setHovered] = useState(false)
-  const texture = useMemo(() => new THREE.TextureLoader().load(planet.image_url), [planet.image_url])
+  const [texture, setTexture] = useState(null)
+
+  // Load texture with crossOrigin to allow external images
+  useEffect(() => {
+    const loader = new THREE.TextureLoader()
+    loader.crossOrigin = 'anonymous'   // key fix for CORS images
+    loader.load(
+      planet.image_url,
+      (tex) => setTexture(tex),
+      undefined,
+      (err) => console.error('Texture load failed:', planet.name, err)
+    )
+  }, [planet.image_url, planet.name])
 
   useFrame((state, delta) => {
     if (meshRef.current) {
@@ -22,12 +34,27 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
     }
   })
 
+  // Placeholder sphere while texture loads
+  if (!texture) {
+    return (
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.8, 32, 32]} />
+        <meshStandardMaterial color="#555" roughness={0.5} />
+        <Html position={[0, -1.2, 0]} center distanceFactor={5}>
+          <div className="text-xs text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap">
+            {planet.name}
+          </div>
+        </Html>
+      </mesh>
+    )
+  }
+
   return (
     <mesh
       ref={meshRef}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
-      onClick={(e) => { e.stopPropagation(); onClick(planet); }}
+      onClick={(e) => { e.stopPropagation(); onClick(planet) }}
     >
       <sphereGeometry args={[0.8, 32, 32]} />
       <meshStandardMaterial
@@ -46,7 +73,7 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
   )
 }
 
-// Center moon – Astira’s special planet
+// Center moon – Astira's special planet
 function CenterStar() {
   const texture = useMemo(
     () => new THREE.TextureLoader().load('https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png'),
