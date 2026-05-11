@@ -4,15 +4,14 @@ from flask import current_app
 FALLBACK_IMAGE = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
 
 def upload_to_ipfs(data):
-    api_key = current_app.config.get('PINATA_API_KEY')
-    if not api_key:
+    jwt = current_app.config.get('PINATA_JWT')
+    if not jwt:
         return FALLBACK_IMAGE
 
     try:
         url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
         headers = {
-            "pinata_api_key": api_key,
-            "pinata_secret_api_key": current_app.config.get('PINATA_SECRET_KEY')
+            "Authorization": f"Bearer {jwt}",
         }
         files = {'file': ('planet.png', data)}
         resp = requests.post(url, files=files, headers=headers)
