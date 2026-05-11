@@ -3,12 +3,10 @@ from models import db, User, Planet
 from services.ai_service import generate_planet_image, extract_style_signature
 from services.lineage_service import check_derivative
 from services.security import check_cooldown, check_abuse
-from utils.ipfs import upload_to_ipfs
 import uuid
 
 planet_bp = Blueprint('planet', __name__)
 
-# Fallback image used if AI generation or IPFS upload fails
 FALLBACK_IMAGE = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
 
 @planet_bp.route('/generate', methods=['POST'])
@@ -45,24 +43,20 @@ def generate():
     else:
         return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
-    # Generate planet image (AI or placeholder)
-    image_data = generate_planet_image(prompt)
-    if not image_data:
-        # If AI completely fails, still create planet with fallback image
-        ipfs_hash = FALLBACK_IMAGE
-    else:
-        ipfs_hash = upload_to_ipfs(image_data)
-        if not ipfs_hash:
-            ipfs_hash = FALLBACK_IMAGE
+    # Generates a direct image URL (or None)
+    image_url = generate_planet_image(prompt)
+    if not image_url:
+        image_url = FALLBACK_IMAGE
 
-    style_sig = extract_style_signature(image_data) if image_data else []
+    # Style signature from the image URL (mock for now)
+    style_sig = extract_style_signature(image_url) if image_url else []
 
     derivative_root, similarity = check_derivative(style_sig) if style_sig else (None, 0)
 
     planet = Planet(
         creator_id=user.id,
         name=f"Planet #{Planet.query.count()+1}",
-        image_ipfs_hash=ipfs_hash,          # This is now always a full URL
+        image_ipfs_hash=image_url,          # store the direct URL here
         style_signature=style_sig,
         rarity='common',
         planet_type='terrestrial',
@@ -78,6 +72,6 @@ def generate():
 
     return jsonify({
         'planet_id': str(planet.id),
-        'image_url': ipfs_hash,             # Already a full URL
+        'image_url': image_url,             # direct URL
         'derivative': bool(derivative_root)
     })
