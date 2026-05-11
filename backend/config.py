@@ -8,6 +8,7 @@ class Config:
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
     PINATA_API_KEY = os.environ.get('PINATA_API_KEY', '')
     PINATA_SECRET_KEY = os.environ.get('PINATA_SECRET_KEY', '')
+    PINATA_JWT = os.environ.get('PINATA_JWT', '')          # <--- NEW
     IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/'
     FREE_GENERATIONS = 3
     COOLDOWN_SECONDS = 10
