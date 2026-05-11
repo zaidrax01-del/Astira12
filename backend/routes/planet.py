@@ -11,6 +11,7 @@ FALLBACK_IMAGE = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335ad
 
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
+    """Only generates the AI image and returns it (does NOT save)."""
     wallet_address = request.headers.get('X-User-Id')
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -34,6 +35,7 @@ def generate():
     data = request.get_json()
     prompt = data.get('prompt', '')
 
+    # Check generation eligibility (free or premium)
     if user.free_generations_used < 3:
         user.free_generations_used += 1
         db.session.commit()
@@ -43,20 +45,49 @@ def generate():
     else:
         return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
-    # Generates a direct image URL (or None)
+    # Generate AI image (returns a direct URL or None)
     image_url = generate_planet_image(prompt)
     if not image_url:
         image_url = FALLBACK_IMAGE
 
-    # Style signature from the image URL (mock for now)
-    style_sig = extract_style_signature(image_url) if image_url else []
+    # Extract a style signature for later lineage checks
+    style_sig = extract_style_signature(image_url)
 
+    return jsonify({
+        'image_url': image_url,
+        'style_signature': style_sig
+    })
+
+@planet_bp.route('/save', methods=['POST'])
+def save_planet():
+    """Saves the planet with a name and description provided by the user."""
+    wallet_address = request.headers.get('X-User-Id')
+    if not wallet_address:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user = User.query.filter_by(wallet_address=wallet_address).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+    image_url = data.get('image_url')
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    style_sig = data.get('style_signature', [])
+
+    if not image_url:
+        return jsonify({'error': 'Missing image URL'}), 400
+    if not name:
+        return jsonify({'error': 'Planet name is required'}), 400
+
+    # Check derivative lineage
     derivative_root, similarity = check_derivative(style_sig) if style_sig else (None, 0)
 
     planet = Planet(
         creator_id=user.id,
-        name=f"Planet #{Planet.query.count()+1}",
-        image_ipfs_hash=image_url,          # store the direct URL here
+        name=name,
+        description=description,
+        image_ipfs_hash=image_url,          # store the direct URL
         style_signature=style_sig,
         rarity='common',
         planet_type='terrestrial',
@@ -68,10 +99,11 @@ def generate():
 
     if derivative_root:
         from services.reward_engine import create_reward_pool
-        create_reward_pool(planet.id, cost)
+        create_reward_pool(planet.id, 0)   # cost was already handled during generation
 
     return jsonify({
         'planet_id': str(planet.id),
-        'image_url': image_url,             # direct URL
-        'derivative': bool(derivative_root)
+        'name': name,
+        'image_url': image_url,
+        'message': 'Planet saved successfully!'
     })
