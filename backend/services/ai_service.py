@@ -1,25 +1,13 @@
 import requests
 import random
 from flask import current_app
-import base64
 
 def generate_planet_image(prompt):
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
-        # Return a real placeholder image so every generation shows something
-        placeholder_url = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
-        try:
-            resp = requests.get(placeholder_url, timeout=10)
-            if resp.status_code == 200:
-                return resp.content
-        except:
-            pass
-        # Ultimate fallback – a tiny 1×1 PNG in base64
-        return base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-        )
+        # Return a placeholder image URL when no API key is set
+        return "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
 
-    # Real ModelsLab API call
     try:
         url = "https://modelslab.com/api/v6/realtime/text2img"
         payload = {
@@ -32,13 +20,16 @@ def generate_planet_image(prompt):
         }
         resp = requests.post(url, json=payload)
         if resp.status_code == 200:
+            # Return the direct image URL from ModelsLab
             image_url = resp.json()['output'][0]
-            return requests.get(image_url).content
-        return None
+            return image_url
+        else:
+            print(f"ModelsLab error: {resp.status_code} {resp.text}")
+            return None
     except Exception as e:
         print("ModelsLab error:", e)
         return None
 
-def extract_style_signature(image_data):
-    # Mock: random 10‑dim vector – in production, use a vision model
+def extract_style_signature(image_url):
+    # Still mock vector; you can replace later with a real vision model
     return [random.random() for _ in range(10)]
