@@ -11,10 +11,16 @@ def check_derivative(new_style_sig):
     best_sim = 0
     best_planet = None
     for p in planets:
-        sim = cosine_similarity(new_style_sig, p.style_signature)
-        if sim > best_sim:
-            best_sim = sim
-            best_planet = p
+        # skip planets with empty or missing style signatures
+        if not p.style_signature or len(p.style_signature) == 0:
+            continue
+        try:
+            sim = cosine_similarity(new_style_sig, p.style_signature)
+            if sim > best_sim:
+                best_sim = sim
+                best_planet = p
+        except Exception:
+            continue
     if best_sim > 0.85:
         return best_planet.id, best_sim
     return None, 0
