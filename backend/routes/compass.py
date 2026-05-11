@@ -26,16 +26,30 @@ def get_planets():
 
     planets = query.order_by(Planet.created_at.desc()).paginate(page=page, per_page=per_page)
     result = []
+
+    # Safe placeholder image when IPFS is missing
+    SAFE_PLACEHOLDER = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
+
     for p in planets.items:
+        if p.image_ipfs_hash:
+            # If it already looks like a full URL, use it; otherwise build gateway URL
+            if p.image_ipfs_hash.startswith('http'):
+                image_url = p.image_ipfs_hash
+            else:
+                image_url = f"https://gateway.pinata.cloud/ipfs/{p.image_ipfs_hash}"
+        else:
+            image_url = SAFE_PLACEHOLDER
+
         result.append({
             'id': str(p.id),
             'name': p.name,
-            'image_url': p.image_ipfs_hash if p.image_ipfs_hash.startswith('http') else f"https://gateway.pinata.cloud/ipfs/{p.image_ipfs_hash}",
+            'image_url': image_url,
             'rarity': p.rarity,
             'planet_type': p.planet_type,
             'creator': p.creator.wallet_address,
             'created_at': p.created_at.isoformat()
         })
+
     return jsonify({
         'planets': result,
         'total': planets.total,
