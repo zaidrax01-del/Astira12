@@ -1,18 +1,24 @@
 import requests
 import random
 from flask import current_app
+import base64
 
 def generate_planet_image(prompt):
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
-        # Return a real placeholder image so generation always shows something
-        url = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.content
-        # Fallback if the image URL is unreachable
-        return b'mock-image-data'
-    
+        # Return a real placeholder image so every generation shows something
+        placeholder_url = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
+        try:
+            resp = requests.get(placeholder_url, timeout=10)
+            if resp.status_code == 200:
+                return resp.content
+        except:
+            pass
+        # Ultimate fallback – a tiny 1×1 PNG in base64
+        return base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        )
+
     # Real ModelsLab API call
     try:
         url = "https://modelslab.com/api/v6/realtime/text2img"
@@ -34,5 +40,5 @@ def generate_planet_image(prompt):
         return None
 
 def extract_style_signature(image_data):
-    # Mock: random 10-dim vector – in production, use a vision model
+    # Mock: random 10‑dim vector – in production, use a vision model
     return [random.random() for _ in range(10)]
