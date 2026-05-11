@@ -1,7 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
 from config import Config
-from models import db
+from models import db, User, Planet
+import uuid
 
 def create_app():
     app = Flask(__name__)
@@ -11,7 +12,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        seed_planets_if_empty()
+        seed_system_planets()          # Always seed the 15 originals
 
     from routes.auth import auth_bp
     from routes.planet import planet_bp
@@ -20,6 +21,7 @@ def create_app():
     from routes.governance import governance_bp
     from routes.rewards import rewards_bp
     from routes.help import help_bp
+    from routes.payment import payment_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(planet_bp, url_prefix='/api/v1/planet')
@@ -28,6 +30,7 @@ def create_app():
     app.register_blueprint(governance_bp, url_prefix='/api/v1/governance')
     app.register_blueprint(rewards_bp, url_prefix='/api/v1/rewards')
     app.register_blueprint(help_bp, url_prefix='/api/v1/help')
+    app.register_blueprint(payment_bp, url_prefix='/api/v1/payment')
 
     @app.route('/api/v1/health')
     def health():
@@ -35,16 +38,8 @@ def create_app():
 
     return app
 
-def seed_planets_if_empty():
-    from models import User, Planet
-    import uuid
-
-    # Only seed if no planets exist yet
-    if Planet.query.first() is not None:
-        print("🌍 Planets already exist. Skipping seed.")
-        return
-
-    # Create a system account for these genesis planets
+def seed_system_planets():
+    """Ensure the 15 official system planets always exist."""
     system_user = User.query.filter_by(wallet_address="0xAstiraSeed").first()
     if not system_user:
         system_user = User(
@@ -56,7 +51,7 @@ def seed_planets_if_empty():
         db.session.add(system_user)
         db.session.commit()
 
-    PLANETS = [
+    ORIGINAL_PLANETS = [
         {
             "name": "Ignarion",
             "planet_type": "Fire Planet",
@@ -164,21 +159,22 @@ def seed_planets_if_empty():
         }
     ]
 
-    for p in PLANETS:
-        planet = Planet(
-            creator_id=system_user.id,
-            name=p["name"],
-            description=p["description"],
-            image_ipfs_hash=p["image_url"],   # stored as URL; could use IPFS later
-            style_signature=[],
-            rarity=p["rarity"],
-            planet_type=p["planet_type"],
-            generation_number=1
-        )
-        db.session.add(planet)
-
+    for p_data in ORIGINAL_PLANETS:
+        existing = Planet.query.filter_by(name=p_data['name'], is_deleted=False).first()
+        if not existing:
+            planet = Planet(
+                creator_id=system_user.id,
+                name=p_data['name'],
+                description=p_data['description'],
+                image_ipfs_hash=p_data['image_url'],
+                style_signature=[],
+                rarity=p_data['rarity'],
+                planet_type=p_data['planet_type'],
+                generation_number=1
+            )
+            db.session.add(planet)
     db.session.commit()
-    print("✅ 15 legendary planets auto-seeded into the Cosmic Compass.")
+    print("✅ 15 system planets verified / inserted.")
 
 
 if __name__ == '__main__':
