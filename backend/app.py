@@ -12,7 +12,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        seed_system_planets()          # Always seed the 15 originals
+        seed_system_planets()          # Always ensures the 15 originals exist
 
     from routes.auth import auth_bp
     from routes.planet import planet_bp
@@ -35,6 +35,16 @@ def create_app():
     @app.route('/api/v1/health')
     def health():
         return {'status': 'ok'}
+
+    # ---------- TEMPORARY cleanup endpoint ----------
+    @app.route('/api/v1/admin/clean-and-reseed')
+    def clean_and_reseed():
+        """Remove all planets and re‑seed only the 15 official system planets."""
+        Planet.query.delete()
+        db.session.commit()
+        seed_system_planets()
+        return {'status': 'Database cleaned. 15 system planets seeded.'}
+    # -------------------------------------------------
 
     return app
 
