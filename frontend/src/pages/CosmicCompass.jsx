@@ -7,22 +7,10 @@ import api from '../services/api'
 import GlowButton from '../components/ui/GlowButton'
 import * as THREE from 'three'
 
-// 3D Planet component – larger spheres
+// 3D Planet – uses HTML <img> to avoid CORS issues
 function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
   const meshRef = useRef()
   const [hovered, setHovered] = useState(false)
-  const [texture, setTexture] = useState(null)
-
-  useEffect(() => {
-    const loader = new THREE.TextureLoader()
-    loader.crossOrigin = 'anonymous'
-    loader.load(
-      planet.image_url,
-      (tex) => setTexture(tex),
-      undefined,
-      (err) => console.error('Texture load failed:', planet.name, err)
-    )
-  }, [planet.image_url, planet.name])
 
   useFrame((state, delta) => {
     if (meshRef.current) {
@@ -33,20 +21,6 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
     }
   })
 
-  if (!texture) {
-    return (
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[1.2, 32, 32]} />  // larger placeholder
-        <meshStandardMaterial color="#555" roughness={0.5} />
-        <Html position={[0, -1.6, 0]} center distanceFactor={8}>
-          <div className="text-xs text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap">
-            {planet.name}
-          </div>
-        </Html>
-      </mesh>
-    )
-  }
-
   return (
     <mesh
       ref={meshRef}
@@ -54,16 +28,34 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
       onPointerOut={() => setHovered(false)}
       onClick={(e) => { e.stopPropagation(); onClick(planet) }}
     >
-      <sphereGeometry args={[1.2, 32, 32]} />   // larger planet
+      {/* Invisible sphere for 3D interaction and hover glow */}
+      <sphereGeometry args={[1.2, 32, 32]} />
       <meshStandardMaterial
-        map={texture}
-        roughness={0.4}
-        metalness={0.1}
-        emissive={hovered ? '#444' : '#000'}
-        emissiveIntensity={hovered ? 0.5 : 0}
+        color={hovered ? 'purple' : 'white'}
+        roughness={1}
+        transparent
+        opacity={0}
       />
-      <Html position={[0, -1.6, 0]} center distanceFactor={8}>
-        <div className="text-xs text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap">
+
+      <Html position={[0, 0, 0]} center distanceFactor={10}>
+        <div
+          className="rounded-full overflow-hidden shadow-lg"
+          style={{
+            width: '80px',
+            height: '80px',
+            border: hovered ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.2)',
+            transition: 'border 0.3s',
+          }}
+        >
+          <img
+            src={planet.image_url}
+            alt={planet.name}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+          />
+        </div>
+        <div className="text-xs text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap mt-1">
           {planet.name}
         </div>
       </Html>
@@ -71,7 +63,7 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
   )
 }
 
-// Center moon – larger
+// Center moon – Astira's special planet
 function CenterStar() {
   const texture = useMemo(
     () => new THREE.TextureLoader().load('https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png'),
@@ -80,7 +72,7 @@ function CenterStar() {
 
   return (
     <mesh>
-      <sphereGeometry args={[4.5, 64, 64]} />  // larger center
+      <sphereGeometry args={[4.5, 64, 64]} />
       <meshStandardMaterial map={texture} roughness={0.3} metalness={0.1} />
       <pointLight intensity={1.5} distance={80} color="#ffffff" />
     </mesh>
@@ -109,7 +101,7 @@ export default function CosmicCompass() {
       const resp = await api.get('/compass/planets', { params: { page: 1, per_page: 100 } })
       let all = resp.data.planets.map((p, idx) => ({
         ...p,
-        orbitRadius: 8 + idx * 2.5,   // wider orbits to spread out
+        orbitRadius: 8 + idx * 2.5,
         speed: 0.05 + Math.random() * 0.08,
         initialAngle: Math.random() * Math.PI * 2,
       }))
@@ -124,9 +116,8 @@ export default function CosmicCompass() {
   })
 
   return (
-    // Full‑screen container, no padding, relative to allow overlay
     <div className="fixed inset-0 z-0 flex flex-col bg-black">
-      {/* Filter bar – positioned on top of the canvas */}
+      {/* Filter bar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-4">
         {['all', 'mine', 'system'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
@@ -138,14 +129,12 @@ export default function CosmicCompass() {
         ))}
       </div>
 
-      {/* Overlay for "Connect wallet" */}
       {filter === 'mine' && !account && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm text-white text-lg">
           Connect wallet to see your planets.
         </div>
       )}
 
-      {/* Canvas fills everything */}
       <Canvas className="flex-1" camera={{ position: [0, 15, 25], fov: 55 }}>
         <ambientLight intensity={0.6} />
         <pointLight position={[10, 10, 10]} intensity={0.8} />
@@ -159,7 +148,6 @@ export default function CosmicCompass() {
         ))}
       </Canvas>
 
-      {/* Modal remains unchanged */}
       <AnimatePresence>
         {selectedPlanet && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
