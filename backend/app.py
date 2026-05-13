@@ -36,15 +36,19 @@ def create_app():
     def health():
         return {'status': 'ok'}
 
-    # ---------- TEMPORARY cleanup endpoint ----------
-    @app.route('/api/v1/admin/clean-and-reseed')
-    def clean_and_reseed():
-        """Remove all planets and re‑seed only the 15 official system planets."""
-        Planet.query.delete()
+    # ---------- TEMPORARY safe cleanup endpoint ----------
+    @app.route('/api/v1/admin/clean-non-system')
+    def clean_non_system():
+        """Delete all planets NOT created by the system seed account."""
+        system_user = User.query.filter_by(wallet_address="0xAstiraSeed").first()
+        if not system_user:
+            return {'error': 'System user not found'}, 500
+        Planet.query.filter(Planet.creator_id != system_user.id).delete()
         db.session.commit()
+        # Re-seed to make sure the 15 are present (they won't duplicate)
         seed_system_planets()
-        return {'status': 'Database cleaned. 15 system planets seeded.'}
-    # -------------------------------------------------
+        return {'status': 'All non-system planets removed. 15 system planets remain.'}
+    # ------------------------------------------------------
 
     return app
 
