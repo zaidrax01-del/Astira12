@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Web3ContextProvider } from './context/Web3Context';
 import Dashboard from './pages/Dashboard';
