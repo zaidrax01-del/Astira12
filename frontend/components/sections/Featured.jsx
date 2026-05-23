@@ -11,7 +11,9 @@ const planets = [
 export default function Featured() {
   return (
     <section className="px-6 lg:px-16 py-24">
-      <h2 className="text-4xl font-bold text-center mb-16 text-gradient">Featured Planets</h2>
+      <h2 className="text-4xl font-bold text-center mb-16 text-gradient">
+        Featured Planets
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {planets.map((p, i) => (
           <motion.div
@@ -19,17 +21,27 @@ export default function Featured() {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            whileHover={{ y: -10, scale: 1.02 }}
+            whileHover={{ y: -12, scale: 1.03 }}
             viewport={{ once: true }}
-            className="glass rounded-2xl overflow-hidden cursor-pointer group"
+            className="glass rounded-2xl overflow-hidden cursor-pointer group relative"
           >
+            {/* Card glow on hover */}
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-2xl opacity-0 group-hover:opacity-20 blur transition duration-300" />
+
             <div className="relative h-56 overflow-hidden">
-              <img src={p.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <img
+                src={p.img}
+                alt={p.name}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              {/* Shine overlay on hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
             </div>
-            <div className="p-4">
+
+            <div className="relative p-5">
               <h3 className="text-xl font-semibold">{p.name}</h3>
-              <p className="text-purple-400 text-sm">{p.price}</p>
+              <p className="text-purple-400 text-sm mt-1">{p.price}</p>
             </div>
           </motion.div>
         ))}
