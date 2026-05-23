@@ -1,12 +1,11 @@
 'use client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import PlanetCanvas from '../PlanetCanvas'
 
 export default function Hero() {
   return (
     <section className="relative h-screen min-h-[600px] max-h-[900px] flex flex-col lg:flex-row items-center justify-between overflow-hidden">
-      {/* HERO BACKGROUND IMAGE + OVERLAY */}
+      {/* Background image + overlay */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -50,7 +49,7 @@ export default function Hero() {
           </Link>
         </div>
 
-        {/* Subtle scroll indicator */}
+        {/* Scroll indicator */}
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
@@ -62,14 +61,28 @@ export default function Hero() {
         </motion.div>
       </motion.div>
 
-      {/* RIGHT 3D PLANET */}
+      {/* RIGHT SIDE – realistic planet (Astira moon) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, delay: 0.3 }}
         className="relative z-10 w-full lg:w-1/2 h-[300px] lg:h-full flex items-center justify-center"
       >
-        <PlanetCanvas />
+        <div className="relative w-72 h-72 lg:w-96 lg:h-96">
+          {/* Glowing ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-purple-400/20 animate-spin-slow" />
+          <div className="absolute inset-4 rounded-full border border-cyan-400/10 animate-spin-slower" />
+
+          {/* The planet image itself */}
+          <img
+            src="https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
+            alt="Astira Planet"
+            className="w-full h-full object-cover rounded-full shadow-[0_0_60px_rgba(168,85,247,0.4)]"
+          />
+
+          {/* Atmospheric glow overlay */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none" />
+        </div>
       </motion.div>
     </section>
   )
