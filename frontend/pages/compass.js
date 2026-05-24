@@ -1,51 +1,74 @@
 'use client'
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
 import { OrbitControls, Stars, Html } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as THREE from 'three'
 
-/* ── Planet data (unchanged) ── */
+/* ── 8 Planets ── */
 const systemPlanets = [
-  { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', orbitRadius: 8, angle: 0.3, image: '/planet-cryonix.png', explorer: 'AstralNomad', population: '1.2M', habitability: 'Low', rarity: 'Legendary', description: 'A mysterious ice planet…' },
-  { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', orbitRadius: 10, angle: 2.1, image: '/planet-solvora.png', explorer: 'EmberKnight', population: '850K', habitability: 'Extremely Hostile', rarity: 'Legendary', description: 'A legendary volcanic planet…' },
-  { id: 'dunora', name: 'Dunora', title: 'The Timeless Dune', color: '#d9a04a', orbitRadius: 9, angle: 4.3, image: '/planet-dunora.png', explorer: 'SandWalker', population: '620K', habitability: 'Moderate', rarity: 'Legendary', description: 'An ancient desert world…' },
-  { id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399', orbitRadius: 7, angle: 5.8, image: '/planet-lumerion.png', explorer: 'StarWeaver', population: '2.1M', habitability: 'Highly Stable', rarity: 'Legendary', description: 'A breathtaking crystal world…' },
-  { id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e', orbitRadius: 11, angle: 0.9, image: '/planet-verdana.png', explorer: 'GaiaTender', population: '3.4M', habitability: 'Extremely High', rarity: 'Legendary', description: 'A legendary living world…' },
-  { id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff', orbitRadius: 9.5, angle: 3.5, image: '/planet-zenithor.png', explorer: 'CorePilot', population: '480K', habitability: 'Controlled Synthetic Zones', rarity: 'Legendary', description: 'A colossal artificial world…' },
-  { id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333', orbitRadius: 12, angle: 2.8, image: '/planet-infernox.png', explorer: 'PyreLord', population: '210K', habitability: 'Near Impossible', rarity: 'Mythic Legendary', description: 'A catastrophic fire planet…' },
-  { id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff', orbitRadius: 14, angle: 1.2, image: '/planet-glacieron.png', explorer: 'FrostWarden', population: '180K', habitability: 'Extremely Harsh', rarity: 'Mythic Legendary', description: 'A colossal frozen titan…' },
-  { id: 'nexoria', name: 'Nexoria', title: 'The Void Nexus', color: '#9933ff', orbitRadius: 16, angle: 5.5, image: '/planet-nexoria.png', explorer: 'VoidWatcher', population: '95K', habitability: 'Unknown', rarity: 'Mythic', description: 'A dark rift world…' },
-  { id: 'auroria', name: 'Auroria', title: 'The Sapphire Tide', color: '#4da6ff', orbitRadius: 15, angle: 4.0, image: '/planet-auroria.png', explorer: 'OceanSage', population: '1.9M', habitability: 'High', rarity: 'Epic', description: 'A serene ocean world…' },
+  {
+    id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff',
+    orbitRadius: 8, angle: 0.3, image: '/planet-cryonix.png',
+    explorer: 'AstralNomad', population: '1.2M', habitability: 'Low', rarity: 'Legendary',
+    description: 'A mysterious ice planet drifting through the outer reaches of the Astira galaxy…',
+  },
+  {
+    id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d',
+    orbitRadius: 10, angle: 2.1, image: '/planet-solvora.png',
+    explorer: 'EmberKnight', population: '850K', habitability: 'Extremely Hostile', rarity: 'Legendary',
+    description: 'A legendary volcanic planet born from collapsing stars and endless cosmic fire…',
+  },
+  {
+    id: 'dunora', name: 'Dunora', title: 'The Timeless Dune', color: '#d9a04a',
+    orbitRadius: 9, angle: 4.3, image: '/planet-dunora.png',
+    explorer: 'SandWalker', population: '620K', habitability: 'Moderate', rarity: 'Legendary',
+    description: 'An ancient desert world shaped by endless cosmic winds…',
+  },
+  {
+    id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399',
+    orbitRadius: 7, angle: 5.8, image: '/planet-lumerion.png',
+    explorer: 'StarWeaver', population: '2.1M', habitability: 'Highly Stable', rarity: 'Legendary',
+    description: 'A breathtaking crystal world formed from condensed cosmic stardust…',
+  },
+  {
+    id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e',
+    orbitRadius: 11, angle: 0.9, image: '/planet-verdana.png',
+    explorer: 'GaiaTender', population: '3.4M', habitability: 'Extremely High', rarity: 'Legendary',
+    description: 'A legendary living world overflowing with cosmic life energy…',
+  },
+  {
+    id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff',
+    orbitRadius: 9.5, angle: 3.5, image: '/planet-zenithor.png',
+    explorer: 'CorePilot', population: '480K', habitability: 'Controlled Synthetic Zones', rarity: 'Legendary',
+    description: 'A colossal artificial world forged by an ancient hyper-advanced civilization…',
+  },
+  {
+    id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333',
+    orbitRadius: 12, angle: 2.8, image: '/planet-infernox.png',
+    explorer: 'PyreLord', population: '210K', habitability: 'Near Impossible', rarity: 'Mythic Legendary',
+    description: 'A catastrophic fire planet consumed by endless volcanic chaos…',
+  },
+  {
+    id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff',
+    orbitRadius: 14, angle: 1.2, image: '/planet-glacieron.png',
+    explorer: 'FrostWarden', population: '180K', habitability: 'Extremely Harsh', rarity: 'Mythic Legendary',
+    description: 'A colossal frozen titan trapped in an endless cosmic winter…',
+  },
 ]
 
-/* ── Realistic Galaxy (plane with texture) ── */
-function RealGalaxy() {
-  // Free high-res galaxy texture (NASA/Hubble public domain)
-  const galaxyTexture = useLoader(THREE.TextureLoader, 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/M81_wide_Galex.jpg/1280px-M81_wide_Galex.jpg')
-
-  const meshRef = useRef()
-  useFrame(({ clock }) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.z = Math.sin(clock.getElapsedTime() * 0.1) * 0.02
-    }
-  })
-
+// ── Realistic Galaxy Plane ──
+function GalaxyBackground() {
+  const texture = useLoader(THREE.TextureLoader, '/galaxy.jpg') // we'll create this file
   return (
-    <mesh ref={meshRef} position={[0, 0, -5]}>
-      <planeGeometry args={[50, 50]} />
-      <meshBasicMaterial
-        map={galaxyTexture}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        transparent
-        opacity={0.4}
-      />
+    <mesh position={[0, 0, -8]}>
+      <planeGeometry args={[40, 40]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.45} depthWrite={false} />
     </mesh>
   )
 }
 
-/* ── Simple Planet Dot ── */
+// ── Planet Marker ──
 function PlanetDot({ planet, onClick }) {
   const groupRef = useRef()
   const [hovered, setHovered] = useState(false)
@@ -67,13 +90,14 @@ function PlanetDot({ planet, onClick }) {
         onPointerOut={() => setHovered(false)}
         onClick={(e) => { e.stopPropagation(); onClick(planet) }}
       >
-        <sphereGeometry args={[0.25, 16, 16]} />
+        <sphereGeometry args={[0.35, 16, 16]} />
         <meshBasicMaterial color={planet.color} />
         <Html center distanceFactor={15}>
-          <div className="flex flex-col items-center space-y-1" style={{ pointerEvents: 'none' }}>
-            <div className={`text-xs font-bold text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap ${hovered ? 'opacity-100' : 'opacity-0'}`}>
-              {planet.name}
-            </div>
+          <div
+            className="text-xs font-bold text-white bg-black/70 px-2 py-0.5 rounded-full whitespace-nowrap"
+            style={{ opacity: hovered ? 1 : 0, pointerEvents: 'none', transition: 'opacity 0.2s' }}
+          >
+            {planet.name}
           </div>
         </Html>
       </mesh>
@@ -81,16 +105,17 @@ function PlanetDot({ planet, onClick }) {
   )
 }
 
-/* ── Info Panel (unchanged) ── */
+// ── Info Panel ──
 function InfoPanel({ planet, onClose }) {
-  if (!planet) return (
-    <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-      <div className="text-center space-y-4">
-        <span className="text-5xl">🪐</span>
-        <p>Select a planet to view details</p>
+  if (!planet)
+    return (
+      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+        <div className="text-center space-y-4">
+          <span className="text-5xl">🪐</span>
+          <p>Select a planet to view details</p>
+        </div>
       </div>
-    </div>
-  )
+    )
 
   return (
     <motion.div
@@ -99,15 +124,24 @@ function InfoPanel({ planet, onClose }) {
       exit={{ opacity: 0, x: 30 }}
       className="h-full overflow-y-auto p-6 space-y-6"
     >
-      <button onClick={onClose} className="text-gray-400 hover:text-white text-lg float-right">✕</button>
+      <button onClick={onClose} className="text-gray-400 hover:text-white text-lg float-right">
+        ✕
+      </button>
       <div className="text-center space-y-2">
-        <img src={planet.image} className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.6)]" />
+        <img
+          src={planet.image}
+          className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.6)]"
+        />
         <h2 className="text-2xl font-bold">{planet.name}</h2>
         <p className="text-sm text-purple-300">{planet.title}</p>
         <p className="text-xs text-gray-400">{planet.explorer}</p>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {[{ label: 'Habitability', value: planet.habitability }, { label: 'Population', value: planet.population }, { label: 'Rarity', value: planet.rarity }].map(s => (
+        {[
+          { label: 'Habitability', value: planet.habitability },
+          { label: 'Population', value: planet.population },
+          { label: 'Rarity', value: planet.rarity },
+        ].map((s) => (
           <div key={s.label} className="glass p-2 rounded-lg text-center">
             <p className="text-xs text-gray-400">{s.label}</p>
             <p className="text-sm font-semibold">{s.value}</p>
@@ -116,51 +150,79 @@ function InfoPanel({ planet, onClose }) {
       </div>
       <p className="text-sm text-gray-300">{planet.description}</p>
       <div className="flex gap-2">
-        <button className="flex-1 py-2 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition">Visit Planet</button>
-        <button className="flex-1 py-2 rounded-full border border-white/20 text-sm text-gray-300 hover:bg-white/5 transition">View Profile</button>
+        <button className="flex-1 py-2 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition">
+          Visit Planet
+        </button>
+        <button className="flex-1 py-2 rounded-full border border-white/20 text-sm text-gray-300 hover:bg-white/5 transition">
+          View Profile
+        </button>
       </div>
     </motion.div>
   )
 }
 
-/* ── Main Page ── */
+// ── Main Page ──
 export default function CosmicCompass() {
   const [selectedPlanet, setSelectedPlanet] = useState(null)
 
   return (
     <div className="h-screen w-screen bg-black flex">
+      {/* LEFT – Galaxy Map */}
       <div className="w-[70%] h-full relative">
-        {/* Floating controls */}
+        {/* Top controls */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex gap-3">
-          <div className="glass px-4 py-2 rounded-full flex items-center gap-3 w-64 border border-white/10 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-            <input placeholder="Search sectors..." className="bg-transparent flex-1 text-sm text-white placeholder-gray-400 outline-none" />
+          <div className="glass px-4 py-2 rounded-full flex items-center gap-3 w-64 border border-white/10">
+            <input
+              placeholder="Search sectors..."
+              className="bg-transparent flex-1 text-sm text-white placeholder-gray-400 outline-none"
+            />
             <span className="text-gray-400">🔍</span>
           </div>
-          <button className="glass px-4 py-2 rounded-full text-sm text-gray-300 border border-white/10 shadow-[0_0_15px_rgba(168,85,247,0.2)] flex items-center gap-2">
+          <button className="glass px-4 py-2 rounded-full text-sm text-gray-300 border border-white/10 flex items-center gap-2">
             All Sectors <span className="text-xs">▾</span>
           </button>
         </div>
+
+        {/* Bottom controls */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-3">
           {['My Location', 'Bookmarks', 'Filters', 'Jump Gate'].map((btn) => (
-            <button key={btn} className="glass px-4 py-2 rounded-full text-sm text-gray-300 border border-white/10 hover:bg-white/10 transition">{btn}</button>
+            <button
+              key={btn}
+              className="glass px-4 py-2 rounded-full text-sm text-gray-300 border border-white/10 hover:bg-white/10 transition"
+            >
+              {btn}
+            </button>
           ))}
         </div>
+
+        {/* Zoom */}
         <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-3">
-          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg text-gray-300 hover:text-white">+</button>
-          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg text-gray-300 hover:text-white">−</button>
+          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg text-gray-300 hover:text-white">
+            +
+          </button>
+          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg text-gray-300 hover:text-white">
+            −
+          </button>
         </div>
 
-        <Canvas camera={{ position: [0, 15, 30], fov: 60 }}>
-          <ambientLight intensity={0.05} />
-          <Stars radius={150} depth={100} count={10000} factor={8} saturation={0.1} fade speed={0.3} />
-          <RealGalaxy />
-          <OrbitControls enableDamping dampingFactor={0.1} maxPolarAngle={Math.PI / 2} minDistance={10} maxDistance={60} />
+        <Canvas camera={{ position: [0, 12, 25], fov: 55 }}>
+          <ambientLight intensity={0.08} />
+          <Stars radius={120} depth={80} count={6000} factor={6} saturation={0.1} fade speed={0.4} />
+          <GalaxyBackground />
+          <OrbitControls
+            enableDamping
+            dampingFactor={0.1}
+            maxPolarAngle={Math.PI / 2}
+            minDistance={10}
+            maxDistance={60}
+          />
           {systemPlanets.map((p) => (
             <PlanetDot key={p.id} planet={p} onClick={setSelectedPlanet} />
           ))}
         </Canvas>
       </div>
 
+      {/* RIGHT – Info Panel */}
       <div className="w-[30%] h-full glass border-l border-white/10 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
         <InfoPanel planet={selectedPlanet} onClose={() => setSelectedPlanet(null)} />
       </div>
