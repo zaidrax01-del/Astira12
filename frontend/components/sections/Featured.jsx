@@ -2,10 +2,10 @@
 import { motion } from 'framer-motion'
 
 const planets = [
-  { name: 'Ignarion', price: '12.4 SOL', img: 'https://i.ibb.co/Wpprv92S/file-0000000082f4720a8e324b704b7fa33f.png' },
-  { name: 'Verdyra', price: '8.9 SOL', img: 'https://i.ibb.co/hJbKCP0V/file-00000000271c7243adbdab4bb0fd7198.png' },
-  { name: 'Cryonix', price: '15.1 SOL', img: 'https://i.postimg.cc/GhYfK1Wz/file-0000000096fc71f4986f98d20fa2f655.png' },
-  { name: 'Heliora', price: '19.7 SOL', img: 'https://i.postimg.cc/T1NkWvTN/file-000000007cbc72469880782e40456670.png' },
+  { name: 'Ignarion', price: '12.4 SOL', img: '/planet-ignarion.png' },
+  { name: 'Verdyra', price: '8.9 SOL', img: '/planet-verdyra.png' },
+  { name: 'Cryonix', price: '15.1 SOL', img: '/planet-cryonix.png' },
+  { name: 'Heliora', price: '19.7 SOL', img: '/planet-heliora.png' },
 ]
 
 export default function Featured() {
