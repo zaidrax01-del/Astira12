@@ -87,13 +87,8 @@ export default function Whitepaper() {
       <SpaceBackground />
       <Navbar />
       <main className="pt-24 px-4 sm:px-8 max-w-5xl mx-auto space-y-12 pb-20">
-        {/* Logo centered at top */}
         <div className="flex flex-col items-center space-y-6">
-          <img
-            src="https://i.ibb.co/39zH1sdf/file-00000000575871f4a13f4a32e177655e.png"
-            alt="Astira Logo"
-            className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
-          />
+          <img src="https://i.ibb.co/39zH1sdf/file-00000000575871f4a13f4a32e177655e.png" alt="Astira Logo" className="w-24 h-24 sm:w-28 sm:h-28 object-contain" />
           <h2 className="text-4xl font-bold text-gradient text-center">Astira Whitepaper</h2>
         </div>
 
@@ -101,18 +96,16 @@ export default function Whitepaper() {
           <div key={sec.title} className="glass p-6 sm:p-8 rounded-2xl space-y-6">
             <h3 className="text-2xl font-semibold text-purple-300">{sec.title}</h3>
 
-            {/* Section image – fully contained, no cropping */}
             {sec.image && (
-              <div className="w-full rounded-xl overflow-hidden border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+              <div className="-mx-6 sm:-mx-8">
                 <img
                   src={sec.image}
                   alt={sec.title}
-                  className="w-full h-auto max-h-[500px] object-contain bg-black/20"
+                  className="w-full h-auto object-contain bg-black/20"
                 />
               </div>
             )}
 
-            {/* Text content */}
             <div className="space-y-2">
               {sec.content.split('\n').map((line, i) => (
                 <p key={i} className="text-gray-300 leading-relaxed">{line}</p>
@@ -122,9 +115,7 @@ export default function Whitepaper() {
         ))}
 
         <div className="text-center">
-          <GlowButton onClick={() => window.open('/whitepaper.pdf', '_blank')}>
-            Download PDF
-          </GlowButton>
+          <GlowButton onClick={() => window.open('/whitepaper.pdf', '_blank')}>Download PDF</GlowButton>
         </div>
       </main>
     </div>
