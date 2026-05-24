@@ -1,210 +1,393 @@
 'use client'
-import { useState, useEffect, useContext, useRef, useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Stars, Html } from '@react-three/drei'
+import { useState, useEffect, useContext, useRef } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, Stars, Html, Line, Sphere } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Web3Context } from '../context/Web3Context'
 import api from '../services/api'
 import GlowButton from '../components/ui/GlowButton'
 import * as THREE from 'three'
 
-// ---------- Planet orbit component ----------
-function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
+// ---------- Planet data for the galaxy map ----------
+const systemPlanets = [
+  {
+    id: 'cryonix',
+    name: 'Cryonix',
+    title: 'The Frozen Heart',
+    element: 'Ice',
+    color: '#3b82f6',
+    orbitRadius: 6,
+    angle: 0.3,
+    image: '/planet-cryonix.png',
+    explorer: 'AstralNomad',
+    population: '1.2M',
+    habitability: 'Low',
+    rarity: 'Legendary',
+    description: 'A mysterious ice planet drifting through the outer reaches of the Astira galaxy. Cryonix is covered in colossal crystal glaciers, frozen oceans, and luminous frost storms.',
+  },
+  {
+    id: 'solvora',
+    name: 'Solvora',
+    title: 'The Forge World',
+    element: 'Fire',
+    color: '#f97316',
+    orbitRadius: 8,
+    angle: 2.1,
+    image: '/planet-solvora.png',
+    explorer: 'EmberKnight',
+    population: '850K',
+    habitability: 'Extremely Hostile',
+    rarity: 'Legendary',
+    description: 'A legendary volcanic planet born from collapsing stars and endless cosmic fire.',
+  },
+  {
+    id: 'dunora',
+    name: 'Dunora',
+    title: 'The Timeless Dune',
+    element: 'Earth',
+    color: '#d97706',
+    orbitRadius: 7,
+    angle: 4.3,
+    image: '/planet-dunora.png',
+    explorer: 'SandWalker',
+    population: '620K',
+    habitability: 'Moderate',
+    rarity: 'Legendary',
+    description: 'An ancient desert world shaped by endless cosmic winds and forgotten civilizations.',
+  },
+  {
+    id: 'lumerion',
+    name: 'Lumerion',
+    title: 'The Stardust Garden',
+    element: 'Crystal',
+    color: '#ec4899',
+    orbitRadius: 5,
+    angle: 5.8,
+    image: '/planet-lumerion.png',
+    explorer: 'StarWeaver',
+    population: '2.1M',
+    habitability: 'Highly Stable',
+    rarity: 'Legendary',
+    description: 'A breathtaking crystal world formed from condensed cosmic stardust and ancient celestial energy.',
+  },
+  {
+    id: 'verdana',
+    name: 'Verdana',
+    title: 'The Living Breath',
+    element: 'Nature',
+    color: '#22c55e',
+    orbitRadius: 9,
+    angle: 0.9,
+    image: '/planet-verdana.png',
+    explorer: 'GaiaTender',
+    population: '3.4M',
+    habitability: 'Extremely High',
+    rarity: 'Legendary',
+    description: 'A legendary living world overflowing with cosmic life energy.',
+  },
+  {
+    id: 'zenithor',
+    name: 'Zenithor',
+    title: 'The Machine Core',
+    element: 'Tech',
+    color: '#a855f7',
+    orbitRadius: 7.5,
+    angle: 3.5,
+    image: '/planet-zenithor.png',
+    explorer: 'CorePilot',
+    population: '480K',
+    habitability: 'Controlled Synthetic Zones',
+    rarity: 'Legendary',
+    description: 'A colossal artificial world forged by an ancient hyper-advanced civilization.',
+  },
+  {
+    id: 'nexoria',
+    name: 'Nexoria',
+    title: 'The Void Nexus',
+    element: 'Void',
+    color: '#6b21a8',
+    orbitRadius: 10,
+    angle: 6.1,
+    image: '/planet-nexoria.png',
+    explorer: 'VoidWatcher',
+    population: '120K',
+    habitability: 'Unknown',
+    rarity: 'Mythic',
+    description: 'A dark rift world suspended between dimensions, pulsing with eerie void energy.',
+  },
+  {
+    id: 'auroria',
+    name: 'Auroria',
+    title: 'The Sapphire Tide',
+    element: 'Water',
+    color: '#06b6d4',
+    orbitRadius: 11,
+    angle: 1.7,
+    image: '/planet-auroria.png',
+    explorer: 'OceanSage',
+    population: '1.9M',
+    habitability: 'High',
+    rarity: 'Epic',
+    description: 'A serene ocean world with floating islands and endless aurora-lit skies.',
+  },
+]
+
+// ---------- 3D Components ----------
+function PlanetMarker({ planet, onClick, isSelected }) {
   const meshRef = useRef()
   const [hovered, setHovered] = useState(false)
+  const { camera } = useThree()
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (meshRef.current) {
-      const angle = orbitAngle.current + state.clock.elapsedTime * speed
-      meshRef.current.position.x = Math.cos(angle) * radius
-      meshRef.current.position.z = Math.sin(angle) * radius
-      meshRef.current.rotation.y += delta * 0.1
+      const t = state.clock.elapsedTime * 0.1
+      meshRef.current.position.x = Math.cos(t + planet.angle) * planet.orbitRadius
+      meshRef.current.position.z = Math.sin(t + planet.angle) * planet.orbitRadius
+      // Keep the HTML billboard facing camera
     }
   })
 
   return (
-    <mesh
-      ref={meshRef}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
-      onClick={(e) => { e.stopPropagation(); onClick(planet) }}
-    >
-      <sphereGeometry args={[1.0, 32, 32]} />
-      <meshStandardMaterial
-        color={hovered ? '#a855f7' : 'white'}
-        transparent
-        opacity={0}
-      />
-      <Html position={[0, 0, 0]} center distanceFactor={12}>
-        <div
-          className="rounded-full overflow-hidden shadow-lg"
-          style={{
-            width: '80px',
-            height: '80px',
-            border: hovered ? '2px solid #a855f7' : '2px solid rgba(255,255,255,0.5)',
-            transition: 'border 0.3s',
-          }}
-        >
-          <img
-            src={planet.image_url}
-            alt={planet.name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-          />
-        </div>
-        <div className="text-xs text-white bg-black/60 px-2 py-0.5 rounded-full whitespace-nowrap mt-1">
-          {planet.name}
-        </div>
-      </Html>
-    </mesh>
+    <group>
+      {/* Orbit ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[planet.orbitRadius - 0.05, planet.orbitRadius + 0.05, 64]} />
+        <meshBasicMaterial color={planet.color} opacity={0.2} transparent side={THREE.DoubleSide} />
+      </mesh>
+      <mesh
+        ref={meshRef}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        onClick={(e) => { e.stopPropagation(); onClick(planet) }}
+      >
+        <sphereGeometry args={[0.4, 32, 32]} />
+        <meshStandardMaterial color={planet.color} roughness={0.3} metalness={0.8} emissive={planet.color} emissiveIntensity={hovered ? 1 : 0.4} />
+        <Html center distanceFactor={15}>
+          <div className="flex flex-col items-center" style={{ pointerEvents: 'none' }}>
+            <div className="text-xs font-bold text-white bg-black/50 px-2 py-0.5 rounded-full whitespace-nowrap">{planet.name}</div>
+            <div className="text-[10px] text-gray-400">{planet.explorer}</div>
+            <div className="text-[10px] text-purple-300">{planet.population}</div>
+          </div>
+        </Html>
+      </mesh>
+    </group>
   )
 }
 
-// ---------- Bright Orbit Ring ----------
-function OrbitRing({ radius }) {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[radius - 0.1, radius + 0.1, 128]} />
-      <meshBasicMaterial color="#ffffff" opacity={0.5} transparent side={THREE.DoubleSide} />
-    </mesh>
-  )
-}
-
-// ---------- Central Realistic Moon ----------
-function CentralMoon() {
-  const texture = useMemo(() => {
-    const loader = new THREE.TextureLoader()
-    loader.crossOrigin = 'anonymous'
-    // Reliable moon texture
-    return loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/800px-FullMoon2010.jpg')
-  }, [])
-
+function GalaxyCore() {
   return (
     <mesh position={[0, 0, 0]}>
-      <sphereGeometry args={[2.0, 64, 64]} />
-      <meshStandardMaterial map={texture} roughness={0.6} metalness={0.1} />
-      <pointLight intensity={0.8} distance={40} color="#ffffff" />
+      <sphereGeometry args={[1.5, 32, 32]} />
+      <meshBasicMaterial color="#a855f7" />
+      <pointLight intensity={2} distance={20} color="#a855f7" />
     </mesh>
+  )
+}
+
+function TravelRoute({ planets }) {
+  // Create a line connecting a few planets (Cryonix → Solvora → Verdana)
+  const points = [
+    new THREE.Vector3(Math.cos(0.3)*6, 0, Math.sin(0.3)*6),
+    new THREE.Vector3(Math.cos(2.1)*8, 0, Math.sin(2.1)*8),
+    new THREE.Vector3(Math.cos(0.9)*9, 0, Math.sin(0.9)*9),
+  ]
+  return <Line points={points} color="#a855f7" lineWidth={1} dashed dashScale={0.5} />
+}
+
+// ---------- Left Sidebar ----------
+function LeftSidebar({ activeNav, setActiveNav }) {
+  const navItems = [
+    { name: 'Home', icon: '🏠' },
+    { name: 'Create', icon: '✨' },
+    { name: 'My Planets', icon: '🪐' },
+    { name: 'Galaxy Map', icon: '🌌' },
+    { name: 'Market', icon: '📊' },
+    { name: 'Events', icon: '🎉' },
+    { name: 'DAO', icon: '🏛️' },
+    { name: 'Messages', icon: '💬' },
+    { name: 'Profile', icon: '👤' },
+    { name: 'More', icon: '⋯' },
+  ]
+
+  return (
+    <aside className="w-[220px] lg:w-[260px] h-screen bg-black/30 backdrop-blur-xl border-r border-white/10 flex flex-col p-4">
+      {/* Logo */}
+      <div className="flex items-center gap-2 mb-8">
+        <img src="/logo.png" className="w-8 h-8" alt="logo" />
+        <span className="text-lg font-bold text-gradient">ASTIRA</span>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1">
+        {navItems.map((item) => (
+          <button
+            key={item.name}
+            onClick={() => setActiveNav(item.name)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+              activeNav === item.name
+                ? 'bg-purple-500/20 text-purple-300 border-l-2 border-purple-500'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>{item.icon}</span>
+            <span>{item.name}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Player rank card */}
+      <div className="glass p-3 rounded-xl space-y-2">
+        <div className="flex items-center gap-2 text-sm">
+          <span>🛡️</span>
+          <span>Rank: Stellar</span>
+        </div>
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full w-3/4 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full" />
+        </div>
+        <p className="text-xs text-gray-400">XP 7,540 / 10,000</p>
+      </div>
+    </aside>
+  )
+}
+
+// ---------- Right Info Panel ----------
+function RightPanel({ selectedPlanet }) {
+  if (!selectedPlanet) return (
+    <aside className="w-[300px] lg:w-[360px] h-screen bg-black/30 backdrop-blur-xl border-l border-white/10 p-4 flex flex-col items-center justify-center text-gray-400">
+      <span className="text-5xl mb-4">🪐</span>
+      <p>Select a planet to view details</p>
+    </aside>
+  )
+
+  const feed = [
+    { user: 'StarPilot', text: 'discovered a new asteroid', time: '2m ago' },
+    { user: 'NovaQueen', text: 'upgraded engine', time: '8m ago' },
+    { user: 'CosmicDrifter', text: 'arrived at Cryonix', time: '12m ago' },
+  ]
+
+  return (
+    <aside className="w-[300px] lg:w-[360px] h-screen bg-black/30 backdrop-blur-xl border-l border-white/10 p-4 overflow-y-auto space-y-6">
+      {/* Planet preview */}
+      <div className="text-center">
+        <img src={selectedPlanet.image} className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.5)]" />
+        <h2 className="text-2xl font-bold mt-2">{selectedPlanet.name}</h2>
+        <p className="text-sm text-purple-300">{selectedPlanet.title}</p>
+        <p className="text-xs text-gray-400">{selectedPlanet.explorer}</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { label: 'Habitability', value: selectedPlanet.habitability },
+          { label: 'Population', value: selectedPlanet.population },
+          { label: 'Rarity', value: selectedPlanet.rarity },
+        ].map((s) => (
+          <div key={s.label} className="glass p-2 rounded-lg">
+            <p className="text-xs text-gray-400">{s.label}</p>
+            <p className="text-sm font-semibold">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-gray-300">{selectedPlanet.description}</p>
+
+      {/* Buttons */}
+      <div className="flex gap-2">
+        <GlowButton className="flex-1 !py-2 !text-sm">Visit Planet</GlowButton>
+        <button className="flex-1 py-2 rounded-full border border-white/20 text-sm text-gray-300 hover:bg-white/5">View Profile</button>
+      </div>
+
+      {/* Social feed */}
+      <div>
+        <h3 className="text-sm font-semibold mb-2">Activity Feed</h3>
+        <div className="space-y-2">
+          {feed.map((f, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-xs">{f.user[0]}</div>
+              <div>
+                <span className="font-medium">{f.user}</span> <span className="text-gray-400">{f.text}</span>
+                <p className="text-xs text-gray-500">{f.time}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Ship card */}
+      <div className="glass p-3 rounded-xl flex items-center gap-3">
+        <span className="text-2xl">🚀</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold">StarVoyager MK-IV</p>
+          <div className="h-1.5 bg-white/10 rounded-full mt-1">
+            <div className="h-full w-2/3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full" />
+          </div>
+          <p className="text-xs text-gray-400">Fuel: 67%</p>
+        </div>
+      </div>
+    </aside>
   )
 }
 
 // ---------- Main Compass Page ----------
 export default function CosmicCompass() {
-  const { account } = useContext(Web3Context)
-  const [planets, setPlanets] = useState([])
-  const [filter, setFilter] = useState('all')
+  const [activeNav, setActiveNav] = useState('Galaxy Map')
   const [selectedPlanet, setSelectedPlanet] = useState(null)
 
-  useEffect(() => { fetchPlanets() }, [account])
-
-  const fetchPlanets = async () => {
-    try {
-      const resp = await api.get('/compass/planets', { params: { page: 1, per_page: 100 } })
-      let all = resp.data.planets.map((p, idx) => ({
-        ...p,
-        orbitRadius: 5 + idx * 2.2,   // spread out for visibility
-        speed: 0.04 + Math.random() * 0.04,
-        initialAngle: Math.random() * Math.PI * 2,
-      }))
-      setPlanets(all)
-    } catch (err) { console.error(err) }
-  }
-
-  const filtered = planets.filter(p => {
-    if (filter === 'mine') return p.creator === account
-    if (filter === 'system') return p.creator === '0xAstiraSeed' || p.creator?.startsWith('AstiraSeed')
-    return true
-  })
-
   return (
-    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center px-4 py-8">
-      <h2 className="text-3xl font-bold text-gradient mb-6">Cosmic Compass</h2>
-
-      {/* Filter bar */}
-      <div className="flex gap-3 mb-6 flex-wrap justify-center">
-        {['all', 'mine', 'system'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-5 py-2 rounded-full text-sm capitalize backdrop-blur-md border transition ${
-              filter === f ? 'bg-purple-500/30 text-purple-300 border-purple-500' : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/50'
-            }`}
-          >
-            {f === 'mine' ? 'My Planets' : f === 'system' ? 'System' : 'All'}
-          </button>
-        ))}
-      </div>
-
-      {/* Connect wallet overlay for 'mine' filter */}
-      {filter === 'mine' && !account && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm text-white text-lg">
-          Connect wallet to see your planets.
-        </div>
-      )}
-
-      {/* Large Container – rectangular, fills width on most screens */}
-      <div className="relative w-full max-w-5xl h-[600px] sm:h-[700px] lg:h-[800px] rounded-2xl overflow-hidden border border-white/10 bg-black/30 backdrop-blur-md shadow-[0_0_80px_rgba(0,0,0,0.6)]">
-        <Canvas camera={{ position: [0, 6, 14], fov: 50 }}>
-          <ambientLight intensity={0.8} />
-          <pointLight position={[10, 10, 10]} intensity={1.0} />
-          <Stars radius={80} depth={60} count={3000} factor={5} saturation={0} fade speed={1} />
-          <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} maxDistance={30} minDistance={6} />
-
-          {/* Central realistic Moon */}
-          <CentralMoon />
-
-          {/* Visible orbit rings */}
-          {filtered.map(p => (
-            <OrbitRing key={`ring-${p.id}`} radius={p.orbitRadius} />
-          ))}
-
-          {/* Orbiting planets */}
-          {filtered.map(p => (
-            <Planet3D
-              key={p.id}
-              planet={p}
-              radius={p.orbitRadius}
-              speed={p.speed}
-              orbitAngle={{ current: p.initialAngle }}
-              onClick={setSelectedPlanet}
+    <div className="h-screen flex bg-[#020617] overflow-hidden">
+      <LeftSidebar activeNav={activeNav} setActiveNav={setActiveNav} />
+      
+      {/* Center Map */}
+      <div className="flex-1 relative">
+        {/* Top search bar + filter */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex gap-3 items-center">
+          <div className="glass px-4 py-2 rounded-full flex items-center gap-2 w-64">
+            <input
+              placeholder="Search sectors..."
+              className="bg-transparent flex-1 text-sm text-white placeholder-gray-500 outline-none"
             />
+            <span>🔍</span>
+          </div>
+          <button className="glass px-4 py-2 rounded-full text-sm text-gray-300 flex items-center gap-1">
+            All Sectors <span>▾</span>
+          </button>
+        </div>
+
+        {/* Bottom control buttons */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+          {['My Location', 'Bookmarks', 'Filters', 'Jump Gate'].map((btn) => (
+            <button key={btn} className="glass px-4 py-2 rounded-full text-sm text-gray-300 hover:text-white hover:bg-white/10 transition">
+              {btn}
+            </button>
+          ))}
+        </div>
+
+        {/* Zoom controls */}
+        <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-2">
+          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg">+</button>
+          <button className="glass w-10 h-10 rounded-full flex items-center justify-center text-lg">−</button>
+        </div>
+
+        <Canvas camera={{ position: [0, 12, 18], fov: 50 }}>
+          <ambientLight intensity={0.6} />
+          <pointLight position={[10, 10, 10]} intensity={1} />
+          <Stars radius={50} depth={50} count={3000} factor={4} saturation={0.2} fade speed={0.5} />
+          <GalaxyCore />
+          <OrbitControls enableDamping dampingFactor={0.1} maxPolarAngle={Math.PI / 2.2} />
+          <TravelRoute />
+          {/* Spiral galaxy arms (particles) */}
+          <mesh rotation={[-Math.PI/2, 0, 0]}>
+            <ringGeometry args={[4, 12, 128]} />
+            <meshBasicMaterial color="#a855f7" opacity={0.1} transparent side={THREE.DoubleSide} />
+          </mesh>
+          {systemPlanets.map((p) => (
+            <PlanetMarker key={p.id} planet={p} onClick={setSelectedPlanet} isSelected={selectedPlanet?.id === p.id} />
           ))}
         </Canvas>
       </div>
 
-      {/* Planet detail modal */}
-      <AnimatePresence>
-        {selectedPlanet && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => setSelectedPlanet(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              className="bg-gray-900 rounded-2xl p-8 max-w-md w-full text-center border border-white/10"
-              onClick={e => e.stopPropagation()}
-            >
-              <img src={selectedPlanet.image_url} className="w-48 h-48 mx-auto rounded-full" />
-              <h3 className="text-2xl font-bold mt-4">{selectedPlanet.name}</h3>
-              <p className="text-gray-400">{selectedPlanet.planet_type} · {selectedPlanet.rarity}</p>
-              <p className="text-gray-300 mt-2">{selectedPlanet.description || 'A mysterious world.'}</p>
-              {selectedPlanet.creator === account ? (
-                <div className="mt-4">
-                  <GlowButton onClick={() => alert('Delete not implemented')}>Delete Planet</GlowButton>
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-gray-500">Mint (Coming Soon)</p>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <RightPanel selectedPlanet={selectedPlanet} />
     </div>
   )
 }
