@@ -9,7 +9,7 @@ export default function Hero() {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: `url('https://i.ibb.co/84j8fY8t/file-000000006bf87246bdc745ec121b25d9.png')`,
+          backgroundImage: `url('/hero-bg.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
