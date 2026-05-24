@@ -2,9 +2,7 @@
 import GlowButton from '../components/ui/GlowButton'
 import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
-import Image from 'next/image'  // optional, but can use plain <img> for external URLs
 
-// Data for each section (title, content, optional image)
 const sections = [
   {
     title: 'What is Astira?',
@@ -100,16 +98,16 @@ export default function Whitepaper() {
         </div>
 
         {sections.map((sec) => (
-          <div key={sec.title} className="glass p-6 sm:p-8 rounded-2xl space-y-4">
+          <div key={sec.title} className="glass p-6 sm:p-8 rounded-2xl space-y-6">
             <h3 className="text-2xl font-semibold text-purple-300">{sec.title}</h3>
 
-            {/* Section image (if present) */}
+            {/* Section image with generous space */}
             {sec.image && (
-              <div className="w-full rounded-xl overflow-hidden">
+              <div className="w-full rounded-xl overflow-hidden border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.15)]">
                 <img
                   src={sec.image}
                   alt={sec.title}
-                  className="w-full h-auto object-cover max-h-80"
+                  className="w-full h-auto max-h-[450px] object-cover object-center"
                 />
               </div>
             )}
