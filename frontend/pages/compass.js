@@ -29,15 +29,19 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
       onPointerOut={() => setHovered(false)}
       onClick={(e) => { e.stopPropagation(); onClick(planet) }}
     >
-      <sphereGeometry args={[0.9, 32, 32]} />
-      <meshStandardMaterial color={hovered ? '#a855f7' : 'white'} transparent opacity={0} />
-      <Html position={[0, 0, 0]} center distanceFactor={10}>
+      <sphereGeometry args={[1.0, 32, 32]} />
+      <meshStandardMaterial
+        color={hovered ? '#a855f7' : 'white'}
+        transparent
+        opacity={0}
+      />
+      <Html position={[0, 0, 0]} center distanceFactor={12}>
         <div
           className="rounded-full overflow-hidden shadow-lg"
           style={{
-            width: '70px',
-            height: '70px',
-            border: hovered ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.3)',
+            width: '80px',
+            height: '80px',
+            border: hovered ? '2px solid #a855f7' : '2px solid rgba(255,255,255,0.5)',
             transition: 'border 0.3s',
           }}
         >
@@ -57,29 +61,30 @@ function Planet3D({ planet, radius, speed, orbitAngle, onClick }) {
   )
 }
 
-// ---------- Orbit ring (visible) ----------
+// ---------- Bright Orbit Ring ----------
 function OrbitRing({ radius }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[radius - 0.08, radius + 0.08, 128]} />
-      <meshBasicMaterial color="#ffffff" opacity={0.25} transparent side={THREE.DoubleSide} />
+      <ringGeometry args={[radius - 0.1, radius + 0.1, 128]} />
+      <meshBasicMaterial color="#ffffff" opacity={0.5} transparent side={THREE.DoubleSide} />
     </mesh>
   )
 }
 
-// ---------- Central Moon ----------
+// ---------- Central Realistic Moon ----------
 function CentralMoon() {
   const texture = useMemo(() => {
     const loader = new THREE.TextureLoader()
-    // Realistic moon texture (public domain)
+    loader.crossOrigin = 'anonymous'
+    // Reliable moon texture
     return loader.load('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/800px-FullMoon2010.jpg')
   }, [])
 
   return (
     <mesh position={[0, 0, 0]}>
-      <sphereGeometry args={[1.5, 64, 64]} />
-      <meshStandardMaterial map={texture} roughness={0.8} metalness={0.1} />
-      <pointLight intensity={0.8} distance={30} color="#ffffff" />
+      <sphereGeometry args={[2.0, 64, 64]} />
+      <meshStandardMaterial map={texture} roughness={0.6} metalness={0.1} />
+      <pointLight intensity={0.8} distance={40} color="#ffffff" />
     </mesh>
   )
 }
@@ -98,8 +103,8 @@ export default function CosmicCompass() {
       const resp = await api.get('/compass/planets', { params: { page: 1, per_page: 100 } })
       let all = resp.data.planets.map((p, idx) => ({
         ...p,
-        orbitRadius: 4.5 + idx * 1.8,   // spread out orbits
-        speed: 0.06 + Math.random() * 0.05,
+        orbitRadius: 5 + idx * 2.2,   // spread out for visibility
+        speed: 0.04 + Math.random() * 0.04,
         initialAngle: Math.random() * Math.PI * 2,
       }))
       setPlanets(all)
@@ -117,12 +122,12 @@ export default function CosmicCompass() {
       <h2 className="text-3xl font-bold text-gradient mb-6">Cosmic Compass</h2>
 
       {/* Filter bar */}
-      <div className="flex gap-3 mb-4 flex-wrap justify-center">
+      <div className="flex gap-3 mb-6 flex-wrap justify-center">
         {['all', 'mine', 'system'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full text-sm capitalize backdrop-blur-md border transition ${
+            className={`px-5 py-2 rounded-full text-sm capitalize backdrop-blur-md border transition ${
               filter === f ? 'bg-purple-500/30 text-purple-300 border-purple-500' : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/50'
             }`}
           >
@@ -138,22 +143,23 @@ export default function CosmicCompass() {
         </div>
       )}
 
-      {/* Contained square compass – larger now */}
-      <div className="relative w-full max-w-[800px] aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-md shadow-[0_0_60px_rgba(0,0,0,0.5)]">
-        <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
-          <ambientLight intensity={0.6} />
-          <pointLight position={[10, 10, 10]} intensity={0.8} />
-          <Stars radius={80} depth={80} count={2000} factor={4} saturation={0} fade speed={1} />
-          <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} maxDistance={35} minDistance={10} />
+      {/* Large Container – rectangular, fills width on most screens */}
+      <div className="relative w-full max-w-5xl h-[600px] sm:h-[700px] lg:h-[800px] rounded-2xl overflow-hidden border border-white/10 bg-black/30 backdrop-blur-md shadow-[0_0_80px_rgba(0,0,0,0.6)]">
+        <Canvas camera={{ position: [0, 6, 14], fov: 50 }}>
+          <ambientLight intensity={0.8} />
+          <pointLight position={[10, 10, 10]} intensity={1.0} />
+          <Stars radius={80} depth={60} count={3000} factor={5} saturation={0} fade speed={1} />
+          <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} maxDistance={30} minDistance={6} />
 
           {/* Central realistic Moon */}
           <CentralMoon />
 
-          {/* Orbit rings for each planet */}
+          {/* Visible orbit rings */}
           {filtered.map(p => (
             <OrbitRing key={`ring-${p.id}`} radius={p.orbitRadius} />
           ))}
-          {/* Planets */}
+
+          {/* Orbiting planets */}
           {filtered.map(p => (
             <Planet3D
               key={p.id}
