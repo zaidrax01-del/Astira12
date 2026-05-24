@@ -22,28 +22,28 @@ export default function Hero() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}
-        className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center space-y-6"
+        className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6"
       >
-        <h1 className="text-5xl md:text-7xl font-extrabold leading-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold leading-tight">
           <span className="text-white">Explore the </span>
           <span className="text-gradient">Cosmos</span>
           <br />
           <span className="text-white">Own the </span>
           <span className="text-gradient">Planets</span>
         </h1>
-        <p className="text-lg text-gray-200 max-w-xl mx-auto">
+        <p className="text-base sm:text-lg text-gray-200 max-w-xl mx-auto">
           Mint AI‑generated planets, trade in the marketplace, and shape the galaxy with our DAO.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
             href="/create"
-            className="px-8 py-3 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition"
+            className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition text-center"
           >
             Create a Planet
           </Link>
           <Link
             href="/compass"
-            className="px-8 py-3 rounded-full border border-purple-400 text-purple-400 hover:bg-purple-400/10 transition"
+            className="w-full sm:w-auto px-8 py-3 rounded-full border border-purple-400 text-purple-400 hover:bg-purple-400/10 transition text-center"
           >
             Explore All
           </Link>
