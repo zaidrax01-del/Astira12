@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import { Web3Context } from '../../context/Web3Context'
 export default function Navbar() {
   const { connected, disconnect } = useWallet()
   const { balance } = useContext(Web3Context)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const links = [
     { name: 'Explore', path: '/compass' },
@@ -17,7 +19,7 @@ export default function Navbar() {
     { name: 'Whitepaper', path: '/whitepaper' },
     { name: 'Help', path: '/help' },
     { name: 'Team', path: '/team' },
-  ];
+  ]
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 px-6 py-4 flex items-center justify-between bg-black/20 backdrop-blur-xl border-b border-white/5">
@@ -25,6 +27,7 @@ export default function Navbar() {
         ASTIRA
       </Link>
 
+      {/* Desktop links */}
       <div className="hidden md:flex gap-6 text-sm font-medium">
         {links.map(link => (
           <Link
@@ -37,9 +40,10 @@ export default function Navbar() {
         ))}
       </div>
 
+      {/* Wallet + hamburger */}
       <div className="flex items-center gap-4">
         {connected && (
-          <span className="text-cyan-300 text-sm bg-white/5 px-3 py-1 rounded-full border border-white/10">
+          <span className="hidden sm:inline text-cyan-300 text-sm bg-white/5 px-3 py-1 rounded-full border border-white/10">
             {balance.toFixed(2)} SOL
           </span>
         )}
@@ -53,7 +57,34 @@ export default function Navbar() {
         ) : (
           <WalletMultiButton className="!bg-gradient-to-r !from-purple-600 !to-cyan-500 !rounded-full !px-5 !py-2 !text-sm !font-semibold" />
         )}
+
+        {/* Hamburger icon */}
+        <button
+          className="md:hidden text-2xl text-gray-300 hover:text-purple-400"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? '✕' : '☰'}
+        </button>
       </div>
+
+      {/* Mobile menu dropdown */}
+      {mobileOpen && (
+        <div className="absolute top-full left-0 w-full bg-black/90 backdrop-blur-xl border-b border-white/10 md:hidden">
+          <div className="flex flex-col p-4 gap-4">
+            {links.map(link => (
+              <Link
+                key={link.name}
+                href={link.path}
+                onClick={() => setMobileOpen(false)}
+                className="text-gray-300 hover:text-purple-400 transition text-lg"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </nav>
-  );
+  )
 }
