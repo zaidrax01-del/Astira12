@@ -21,12 +21,12 @@ const sections = [
   },
   {
     title: 'AI-Driven Planet Genesis',
-    image: 'https://i.ibb.co/LDS8LcFd/file-000000007e9871f4970986440f72c70a.png',
+    image: '/ai-genesis.png',
     content: `Users describe a planet in natural language (color, terrain, rings, resources, story tags). AI generates 2D/3D visuals + structured attributes.\n\nOutput includes:\n• Name, visual form, rarity, resource type\n• Habitability index, special event triggers\n• Cosmic coordinates, family lineage\n\nKey principle: Generation inherits the visual genes of the original planet series — no chaotic randomness. New planets feel like relatives of the core collection.\n\nValue: Astira upgrades from a trading market to a cosmic creation tool.`
   },
   {
     title: 'Original Series & Creator Revenue Sharing',
-    image: 'https://i.ibb.co/Swtdjcn7/file-0000000032cc71f49ee4753b9d0fa1ce.png',
+    image: '/original-series.png',
     content: `The Original 16 Planets are the aesthetic ancestors of the entire universe. All new planets must have a mapping relationship to them (color, structure, climate, emotion, etc.).\n\nRevenue Sharing: When a new planet is generated from an original series branch, royalties are automatically shared with the original series holders.\n\nWhy it matters: Protects scarcity, boosts holder loyalty, and gives creators long-term income — not just a one-time sale.`
   },
   {
@@ -36,7 +36,7 @@ const sections = [
   },
   {
     title: 'Galaxy Map & Social Exploration',
-    image: 'https://i.ibb.co/gFcFgsV5/file-000000006224720aab49868623ed0ac3.png',
+    image: '/galaxy-map.png',
     content: `All minted planets appear on a unified, browsable galaxy map.\n\nWhat you can do:\n• Pilot your planet or vehicle to visit others\n• View owner's logs, stories, showcase pages, activity records\n\nEvents: interstellar trade fairs, themed exhibitions, planet parties, brand sponsorships.\n\nStrategic choice: Lightweight 2D/light 3D (not a heavy metaverse) — easier to build and scale.`
   },
   {
@@ -61,7 +61,7 @@ const sections = [
   },
   {
     title: '$AST Token Model',
-    image: 'https://i.ibb.co/3q08cRb/file-000000004f1c720aa9405624d3b12ce0.png',
+    image: '/token-distribution.png',
     content: `Role: Core functional token for payments, incentives, governance, and ecosystem settlement.\n\nMain uses:\n• Pay casting & premium generation fees\n• DAO governance & staking\n• Unlock rare creation permissions\n• Special events & ecological transactions\n\nValue capture: More platform activity → more $AST usage → demand grows.\n\nDistribution:\n• Ecological Development: 25%\n• Team: 20%\n• Community Incentives: 20%\n• Liquidity: 15%\n• Marketing: 10%\n• Airdrop: 10%`
   },
   {
@@ -71,7 +71,7 @@ const sections = [
   },
   {
     title: 'Roadmap',
-    image: 'https://i.ibb.co/nN4ymf8V/file-00000000e07c7243b9baa5797a606962.png',
+    image: '/roadmap.png',
     content: `Phase 1 — Platform Validation: Brand, core visuals, planet creation MVP, original series, basic trading\n\nPhase 2 — Gameplay Enhancement: Dynamic evolution, star map, user logs, airdrops, community ops\n\nPhase 3 — Ecological Expansion: Integration/disassembly, brand collabs, data activities, DAO proposals\n\nPhase 4 — Infrastructure Upgrade: Astira Chain, cross-chain, developer interfaces, open ecosystem`
   },
   {
@@ -88,7 +88,7 @@ export default function Whitepaper() {
       <Navbar />
       <main className="pt-24 px-4 sm:px-8 max-w-5xl mx-auto space-y-12 pb-20">
         <div className="flex flex-col items-center space-y-6">
-          <img src="https://i.ibb.co/39zH1sdf/file-00000000575871f4a13f4a32e177655e.png" alt="Astira Logo" className="w-24 h-24 sm:w-28 sm:h-28 object-contain" />
+          <img src="/logo.png" alt="Astira Logo" className="w-24 h-24 sm:w-28 sm:h-28 object-contain" />
           <h2 className="text-4xl font-bold text-gradient text-center">Astira Whitepaper</h2>
         </div>
 
@@ -115,7 +115,9 @@ export default function Whitepaper() {
         ))}
 
         <div className="text-center">
-          <GlowButton onClick={() => window.open('/whitepaper.pdf', '_blank')}>Download PDF</GlowButton>
+          <GlowButton onClick={() => window.open('/astira-whitepaper.pdf', '_blank')}>
+            Download PDF
+          </GlowButton>
         </div>
       </main>
     </div>
