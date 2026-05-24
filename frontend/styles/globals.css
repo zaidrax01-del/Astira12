@@ -10,6 +10,7 @@ body {
   color: white;
   margin: 0;
   padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 .glass {
   background: rgba(255, 255, 255, 0.04);
@@ -29,7 +30,19 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Ring animations for hero planet */
+/* Responsive headings */
+h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.1;
+}
+h2 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+p {
+  font-size: clamp(0.9rem, 1.5vw, 1.125rem);
+}
+
+/* Ring animations */
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -43,4 +56,14 @@ body {
 }
 .animate-spin-slower {
   animation: spin-slower 30s linear infinite;
+}
+
+/* Mobile adjustments for Navbar */
+@media (max-width: 768px) {
+  .desktop-menu {
+    display: none !important;
+  }
+  .mobile-menu {
+    display: block;
+  }
 }
