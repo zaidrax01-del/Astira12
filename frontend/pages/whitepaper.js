@@ -101,16 +101,14 @@ export default function Whitepaper() {
           <div key={sec.title} className="glass p-6 sm:p-8 rounded-2xl space-y-6">
             <h3 className="text-2xl font-semibold text-purple-300">{sec.title}</h3>
 
-            {/* Section image with fixed aspect ratio and contained fit */}
+            {/* Section image – fully contained, no cropping */}
             {sec.image && (
-              <div className="relative w-full max-w-full rounded-xl overflow-hidden border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.15)] bg-black/20">
-                <div className="aspect-video">
-                  <img
-                    src={sec.image}
-                    alt={sec.title}
-                    className="w-full h-full object-contain p-2"
-                  />
-                </div>
+              <div className="w-full rounded-xl overflow-hidden border border-white/10 shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+                <img
+                  src={sec.image}
+                  alt={sec.title}
+                  className="w-full h-auto max-h-[500px] object-contain bg-black/20"
+                />
               </div>
             )}
 
