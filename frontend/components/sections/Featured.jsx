@@ -10,7 +10,7 @@ const planets = [
     rarity: 'Legendary',
     glow: 'shadow-orange-500/40',
     border: 'border-orange-500/30',
-    img: '/planet-solvora.png', // placeholder – replace with real image path
+    img: '/planet-solvora.png',
   },
   {
     id: 2,
@@ -120,12 +120,12 @@ export default function Featured() {
             viewport={{ once: true }}
             className={`relative glass rounded-2xl overflow-hidden border ${planet.border} ${planet.glow} transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(var(--glow),0.6)]`}
           >
-            {/* Planet image */}
-            <div className="relative h-48 sm:h-56 overflow-hidden">
+            {/* Planet image – square container, object-contain */}
+            <div className="relative aspect-square overflow-hidden">
               <img
                 src={planet.img}
                 alt={planet.name}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+                className="w-full h-full object-contain transition-transform duration-700 hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
