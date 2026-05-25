@@ -1,597 +1,324 @@
 'use client'
 
-import { useState, useRef, useMemo, Suspense } from 'react'
-import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { Stars } from '@react-three/drei'
-import { motion } from 'framer-motion'
-import * as THREE from 'three'
-
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import Navbar from '../components/layout/Navbar'
-import GlowButton from '../components/ui/GlowButton'
 
-/* ---------------- PLANET ---------------- */
+const Canvas = dynamic(
+  () => import('@react-three/fiber').then((mod) => mod.Canvas),
+  { ssr: false }
+)
 
-function PlanetScene() {
-  const planetRef = useRef()
+const OrbitControls = dynamic(
+  () => import('@react-three/drei').then((mod) => mod.OrbitControls),
+  { ssr: false }
+)
 
-  const texture = useLoader(
-    THREE.TextureLoader,
-    '/planet-texture.png'
-  )
-
-  useFrame(({ clock }) => {
-    if (planetRef.current) {
-      planetRef.current.rotation.y =
-        clock.getElapsedTime() * 0.02
-    }
-  })
-
-  const particles = useMemo(() => {
-    const positions = new Float32Array(150 * 3)
-
-    for (let i = 0; i < 150; i++) {
-      positions[i * 3] =
-        (Math.random() - 0.5) * 20
-
-      positions[i * 3 + 1] =
-        (Math.random() - 0.5) * 20
-
-      positions[i * 3 + 2] =
-        (Math.random() - 0.5) * 20
-    }
-
-    return positions
-  }, [])
-
+function Planet() {
   return (
-    <group>
-
-      {/* OUTER GLOW */}
-      <mesh>
-        <sphereGeometry args={[2.7, 32, 32]} />
-
-        <meshBasicMaterial
-          color="#9333ea"
-          transparent
-          opacity={0.15}
-        />
-      </mesh>
-
-      {/* MAIN PLANET */}
-      <mesh ref={planetRef}>
-        <sphereGeometry args={[2.2, 32, 32]} />
-
-        <meshStandardMaterial
-          map={texture}
-          roughness={0.8}
-          metalness={0.05}
-        />
-      </mesh>
-
-      {/* ATMOSPHERE */}
-      <mesh scale={1.05}>
-        <sphereGeometry args={[2.2, 32, 32]} />
-
-        <meshBasicMaterial
-          color="#c084fc"
-          transparent
-          opacity={0.08}
-          side={THREE.BackSide}
-        />
-      </mesh>
-
-      {/* FLOATING PARTICLES */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={particles.length / 3}
-            array={particles}
-            itemSize={3}
-          />
-        </bufferGeometry>
-
-        <pointsMaterial
-          size={0.03}
-          color="#ffffff"
-        />
-      </points>
-
-    </group>
+    <mesh rotation={[0.2, 0.5, 0]}>
+      <sphereGeometry args={[2.2, 64, 64]} />
+      <meshStandardMaterial
+        color="#2a1458"
+        emissive="#7c3aed"
+        emissiveIntensity={0.4}
+      />
+    </mesh>
   )
 }
 
-/* ---------------- PAGE ---------------- */
-
-export default function CreatePlanet() {
-
+export default function Create() {
   const [prompt, setPrompt] = useState('')
 
-  const variations = [
-    '/planet1.png',
-    '/planet2.png',
-    '/planet3.png',
-    '/planet4.png',
-  ]
-
   return (
-    <div className="
-      relative
-      min-h-screen
-      overflow-hidden
-      bg-black
-      text-white
-    ">
+    <div className="min-h-screen bg-black text-white overflow-hidden relative">
 
-      {/* BACKGROUND */}
-      <div className="
-        absolute
-        inset-0
-        bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_40%,#000_100%)]
-      " />
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#3b0764,#000)] z-0" />
 
-      {/* PURPLE GLOW */}
-      <div className="
-        absolute
-        top-1/4
-        left-1/2
-        -translate-x-1/2
-        w-[400px]
-        h-[400px]
-        lg:w-[800px]
-        lg:h-[800px]
-        rounded-full
-        bg-purple-500/20
-        blur-[120px]
-      " />
-
-      {/* NAVBAR */}
+      {/* Navbar */}
       <Navbar />
 
-      {/* CONTENT */}
-      <div className="
-        relative
-        z-10
-        pt-24
-        px-4
-        lg:px-10
-        pb-10
-      ">
+      {/* Main Content */}
+      <div className="relative z-10 pt-24 px-4 lg:px-8 pb-10">
 
-        <div className="
-          flex
-          flex-col
-          lg:grid
-          lg:grid-cols-[320px_1fr_320px]
-          gap-6
-        ">
+        {/* DESKTOP */}
+        <div className="hidden lg:grid grid-cols-[320px_1fr_340px] gap-6">
 
-          {/* PLANET */}
-          <div className="
-            order-1
-            lg:order-2
-            relative
-            h-[320px]
-            lg:h-[700px]
-            flex
-            items-center
-            justify-center
-          ">
+          {/* LEFT PANEL */}
+          <div className="bg-white/5 border border-purple-500/20 rounded-[30px] p-6 backdrop-blur-xl">
 
-            {/* PLANET GLOW */}
-            <div className="
-              absolute
-              w-[280px]
-              h-[280px]
-              lg:w-[600px]
-              lg:h-[600px]
-              rounded-full
-              bg-purple-500/20
-              blur-[90px]
-            " />
+            <h1 className="text-5xl font-black leading-none">
+              AI-DRIVEN
+              <br />
+              <span className="text-purple-400">
+                PLANET GENESIS
+              </span>
+            </h1>
 
-            <Canvas
-              gl={{
-                antialias: false,
-                alpha: true,
-                powerPreference: 'low-power',
-              }}
-              dpr={1}
-              camera={{
-                position: [0, 0, 7],
-                fov: 45,
-              }}
-            >
+            <p className="text-gray-400 mt-4 text-sm">
+              Describe it. Generate it. Own it.
+            </p>
 
-              <ambientLight intensity={1} />
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe your planet..."
+              className="w-full h-40 mt-6 rounded-2xl bg-black/40 border border-white/10 p-4 outline-none resize-none"
+            />
+
+            {/* Style Pills */}
+            <div className="flex flex-wrap gap-2 mt-5">
+              {['Cosmic', 'Fantasy', 'Sci-Fi', 'Realistic'].map((item) => (
+                <div
+                  key={item}
+                  className="px-4 py-2 rounded-full bg-white/10 text-sm border border-white/10"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            {/* Attributes */}
+            <div className="grid grid-cols-2 gap-3 mt-6">
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <p className="text-gray-400 text-xs">Type</p>
+                <p className="mt-1">Oceanic</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <p className="text-gray-400 text-xs">Energy</p>
+                <p className="mt-1">High</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <p className="text-gray-400 text-xs">Rarity</p>
+                <p className="mt-1 text-purple-400">Epic</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <p className="text-gray-400 text-xs">Habitability</p>
+                <p className="mt-1 text-green-400">78%</p>
+              </div>
+
+            </div>
+
+            {/* Button */}
+            <button className="w-full mt-6 py-4 rounded-full bg-gradient-to-r from-purple-600 to-cyan-400 font-bold text-lg shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+              Generate Planet
+            </button>
+          </div>
+
+          {/* CENTER PLANET */}
+          <div className="relative h-[720px] rounded-[40px] overflow-hidden border border-purple-500/20 bg-black/30">
+
+            {/* Glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle,#7c3aed33,transparent_70%)]" />
+
+            {/* Orbit Ring */}
+            <div className="absolute inset-10 border-[18px] border-purple-300/30 rounded-full z-10" />
+
+            {/* Canvas */}
+            <Canvas camera={{ position: [0, 0, 6] }}>
+
+              <ambientLight intensity={1.5} />
 
               <directionalLight
-                position={[3, 3, 3]}
-                intensity={1}
+                position={[5, 5, 5]}
+                intensity={2}
               />
 
-              <Stars
-                radius={50}
-                depth={20}
-                count={300}
-                factor={2}
-                fade
-              />
+              <Planet />
 
-              <Suspense fallback={null}>
-                <PlanetScene />
-              </Suspense>
+              <OrbitControls
+                enableZoom={false}
+                autoRotate
+                autoRotateSpeed={1.5}
+              />
 
             </Canvas>
 
+            {/* 360 Badge */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/70 border border-white/10 px-6 py-3 rounded-full backdrop-blur-xl z-20">
+              360°
+            </div>
           </div>
 
-          {/* LEFT PANEL */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="
-              order-2
-              lg:order-1
-              glass-panel
-              rounded-[28px]
-              p-5
-            "
-          >
-
-            <h1 className="
-              text-3xl
-              lg:text-5xl
-              font-black
-              leading-none
-            ">
-              AI PLANET
-            </h1>
-
-            <h2 className="
-              text-3xl
-              lg:text-5xl
-              font-black
-              text-purple-400
-              leading-none
-              mb-3
-            ">
-              GENERATOR
-            </h2>
-
-            <p className="
-              text-gray-400
-              text-sm
-              mb-6
-            ">
-              Create cinematic worlds using AI.
-            </p>
-
-            {/* TEXTAREA */}
-            <div className="space-y-5">
-
-              <div>
-
-                <p className="
-                  text-sm
-                  text-gray-300
-                  mb-2
-                ">
-                  Describe Your Planet
-                </p>
-
-                <textarea
-                  value={prompt}
-                  onChange={(e) =>
-                    setPrompt(e.target.value)
-                  }
-                  placeholder="Crystal oceans, glowing skies, floating islands..."
-                  className="
-                    w-full
-                    h-36
-                    rounded-2xl
-                    bg-white/5
-                    border
-                    border-white/10
-                    p-4
-                    text-sm
-                    outline-none
-                    resize-none
-                  "
-                />
-
-              </div>
-
-              {/* STYLES */}
-              <div>
-
-                <p className="
-                  text-sm
-                  text-gray-300
-                  mb-3
-                ">
-                  Planet Style
-                </p>
-
-                <div className="
-                  flex
-                  flex-wrap
-                  gap-2
-                ">
-
-                  {[
-                    'Cosmic',
-                    'Fantasy',
-                    'Sci-Fi',
-                    'Realistic',
-                  ].map((item) => (
-                    <button
-                      key={item}
-                      className="
-                        px-4
-                        py-2
-                        rounded-full
-                        bg-white/5
-                        border
-                        border-white/10
-                        text-sm
-                      "
-                    >
-                      {item}
-                    </button>
-                  ))}
-
-                </div>
-
-              </div>
-
-              {/* STATS */}
-              <div className="
-                grid
-                grid-cols-2
-                gap-3
-              ">
-
-                <div className="stat-card">
-                  <p className="stat-label">
-                    Type
-                  </p>
-
-                  <h3>Oceanic</h3>
-                </div>
-
-                <div className="stat-card">
-                  <p className="stat-label">
-                    Energy
-                  </p>
-
-                  <h3>High</h3>
-                </div>
-
-                <div className="stat-card">
-                  <p className="stat-label">
-                    Rarity
-                  </p>
-
-                  <h3>Epic</h3>
-                </div>
-
-                <div className="stat-card">
-                  <p className="stat-label">
-                    Habitability
-                  </p>
-
-                  <h3>78%</h3>
-                </div>
-
-              </div>
-
-              <GlowButton className="w-full">
-                Generate Planet
-              </GlowButton>
-
-            </div>
-
-          </motion.div>
-
           {/* RIGHT PANEL */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="
-              order-3
-              glass-panel
-              rounded-[28px]
-              p-5
-            "
-          >
+          <div className="bg-white/5 border border-purple-500/20 rounded-[30px] p-6 backdrop-blur-xl">
 
-            <h2 className="
-              text-2xl
-              font-bold
-              mb-5
-            ">
-              Generated Planet
+            <h2 className="text-2xl font-bold mb-5">
+              Your Generated Planet
             </h2>
 
-            {/* PREVIEW */}
-            <div className="
-              w-full
-              h-52
-              rounded-2xl
-              overflow-hidden
-              border
-              border-white/10
-              bg-white/5
-            ">
+            <img
+              src="/planet-texture.jpg"
+              alt="planet"
+              className="w-full h-56 rounded-2xl object-cover border border-white/10"
+            />
 
-              <img
-                src="/planet-texture.png"
-                alt="planet"
-                className="
-                  w-full
-                  h-full
-                  object-cover
-                "
-              />
+            {/* Info */}
+            <div className="space-y-4 mt-6 text-sm">
 
-            </div>
-
-            {/* DETAILS */}
-            <div className="
-              mt-6
-              space-y-4
-            ">
-
-              <div className="info-row">
-                <span>Name</span>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Name</span>
                 <span>Asteria Prime</span>
               </div>
 
-              <div className="info-row">
-                <span>Type</span>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Type</span>
                 <span>Oceanic</span>
               </div>
 
-              <div className="info-row">
-                <span>Rarity</span>
-
-                <span className="text-purple-400">
-                  Epic
-                </span>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Rarity</span>
+                <span className="text-purple-400">Epic</span>
               </div>
 
-              <div className="info-row">
-                <span>Habitability</span>
-
-                <span className="text-green-400">
-                  78%
-                </span>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Habitability</span>
+                <span className="text-green-400">78%</span>
               </div>
 
             </div>
 
-            {/* TRAITS */}
-            <div className="mt-8">
+            {/* Traits */}
+            <div className="grid grid-cols-3 gap-3 mt-8">
 
-              <h3 className="
-                font-semibold
-                mb-4
-              ">
-                Special Traits
-              </h3>
-
-              <div className="
-                grid
-                grid-cols-2
-                gap-3
-              ">
-
-                {[
-                  'Crystal Oceans',
-                  'Floating Islands',
-                  'Aurora Sky',
-                  'Purple Atmosphere',
-                ].map((trait) => (
-                  <div
-                    key={trait}
-                    className="
-                      bg-white/5
-                      border
-                      border-white/10
-                      rounded-2xl
-                      p-3
-                      text-sm
-                    "
-                  >
-                    {trait}
-                  </div>
-                ))}
-
-              </div>
-
-              <GlowButton className="w-full mt-8">
-                Mint Planet
-              </GlowButton>
+              {[
+                'Crystal',
+                'Aurora',
+                'Energy',
+                'Ocean',
+                'Floating',
+                'Core',
+              ].map((trait) => (
+                <div
+                  key={trait}
+                  className="bg-white/5 border border-white/10 rounded-2xl py-4 text-center text-xs"
+                >
+                  {trait}
+                </div>
+              ))}
 
             </div>
 
-          </motion.div>
+            {/* Mint Button */}
+            <button className="w-full mt-8 py-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 font-bold text-lg shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+              Mint Planet
+            </button>
 
+          </div>
         </div>
 
-        {/* CAROUSEL */}
-        <div className="
-          flex
-          gap-4
-          mt-8
-          overflow-x-auto
-          pb-4
-        ">
+        {/* MOBILE */}
+        <div className="lg:hidden flex flex-col gap-6">
 
-          {variations.map((planet, i) => (
-            <div
-              key={i}
-              className="
-                min-w-[120px]
-                lg:min-w-[150px]
-                glass-panel
-                rounded-2xl
-                p-2
-              "
-            >
+          {/* Planet */}
+          <div className="relative h-[420px] rounded-[40px] overflow-hidden border border-purple-500/20 bg-black/30">
 
-              <img
-                src={planet}
-                className="
-                  w-full
-                  h-24
-                  lg:h-32
-                  object-cover
-                  rounded-xl
-                "
+            <div className="absolute inset-5 border-[10px] border-purple-300/30 rounded-full z-10" />
+
+            <Canvas camera={{ position: [0, 0, 6] }}>
+
+              <ambientLight intensity={1.5} />
+
+              <directionalLight
+                position={[5, 5, 5]}
+                intensity={2}
               />
 
+              <Planet />
+
+              <OrbitControls
+                enableZoom={false}
+                autoRotate
+                autoRotateSpeed={1.5}
+              />
+
+            </Canvas>
+
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 border border-white/10 px-5 py-2 rounded-full z-20">
+              360°
             </div>
-          ))}
+          </div>
 
+          {/* Create Panel */}
+          <div className="bg-white/5 border border-purple-500/20 rounded-[30px] p-5">
+
+            <h2 className="text-2xl font-bold">
+              Create Planet
+            </h2>
+
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe your planet..."
+              className="w-full h-32 mt-5 rounded-2xl bg-black/40 border border-white/10 p-4 outline-none resize-none"
+            />
+
+            <div className="flex flex-wrap gap-2 mt-5">
+              {['Cosmic', 'Fantasy', 'Sci-Fi', 'Realistic'].map((item) => (
+                <div
+                  key={item}
+                  className="px-4 py-2 rounded-full bg-white/10 text-sm border border-white/10"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full mt-6 py-4 rounded-full bg-gradient-to-r from-purple-600 to-cyan-400 font-bold">
+              Generate Planet
+            </button>
+
+          </div>
+
+          {/* Planet Info */}
+          <div className="bg-white/5 border border-purple-500/20 rounded-[30px] p-5">
+
+            <h2 className="text-2xl font-bold mb-4">
+              Your Generated Planet
+            </h2>
+
+            <img
+              src="/planet-texture.jpg"
+              alt="planet"
+              className="w-full h-52 rounded-2xl object-cover border border-white/10"
+            />
+
+            <div className="space-y-4 mt-6 text-sm">
+
+              <div className="flex justify-between">
+                <span className="text-gray-400">Name</span>
+                <span>Asteria Prime</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-400">Type</span>
+                <span>Oceanic</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-400">Rarity</span>
+                <span className="text-purple-400">Epic</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-400">Habitability</span>
+                <span className="text-green-400">78%</span>
+              </div>
+
+            </div>
+
+            <button className="w-full mt-6 py-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 font-bold">
+              Mint Planet
+            </button>
+
+          </div>
         </div>
-
       </div>
-
-      {/* STYLES */}
-      <style jsx>{`
-        .glass-panel {
-          background: rgba(10, 10, 20, 0.45);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255,255,255,0.08);
-
-          box-shadow:
-            0 0 30px rgba(168,85,247,0.15),
-            inset 0 0 20px rgba(255,255,255,0.03);
-        }
-
-        .stat-card {
-          padding: 14px;
-          border-radius: 18px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .stat-label {
-          font-size: 11px;
-          color: #9ca3af;
-          margin-bottom: 6px;
-        }
-
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-      `}</style>
-
     </div>
   )
 }
