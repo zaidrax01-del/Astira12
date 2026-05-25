@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 
-/* ── Planet data (unchanged) ── */
+/* ── Planet data ── */
 const PLANETS = [
   { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', img: '/planet-cryonix.png', angle: 0, distance: 38, habitability: 'Low', population: '1.2M', rarity: 'Legendary', explorer: 'AstralNomad', description: 'A mysterious ice planet drifting through the outer reaches of the Astira galaxy…' },
   { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', img: '/planet-solvora.png', angle: 45, distance: 44, habitability: 'Extremely Hostile', population: '850K', rarity: 'Legendary', explorer: 'EmberKnight', description: 'A legendary volcanic planet born from collapsing stars and endless cosmic fire…' },
@@ -20,7 +20,7 @@ export default function CosmicCompass() {
   const [selectedPlanet, setSelectedPlanet] = useState(null)
   const [rotation, setRotation] = useState(0)
 
-  // Slow rotation for the planet layer
+  // Slow continuous rotation
   useEffect(() => {
     const interval = setInterval(() => {
       setRotation((prev) => (prev + 0.01) % 360)
@@ -30,15 +30,12 @@ export default function CosmicCompass() {
 
   return (
     <div className="relative h-screen w-screen bg-black overflow-hidden">
-      {/* Deep space stars behind everything */}
       <SpaceBackground />
-
-      {/* Navbar with dark background for contrast */}
       <Navbar />
 
-      {/* ── Main content container ── */}
+      {/* Main content container */}
       <div className="relative z-10 h-full flex flex-col items-center justify-between pt-20 pb-4 px-4">
-        {/* Top controls row */}
+        {/* Top controls */}
         <div className="w-full max-w-3xl flex gap-3 mb-2">
           <div className="glass-dark flex-1 px-4 py-2.5 rounded-full flex items-center gap-2 border border-white/10 shadow-[0_0_10px_rgba(0,0,0,0.3)]">
             <input
@@ -52,22 +49,21 @@ export default function CosmicCompass() {
           </button>
         </div>
 
-        {/* ── Galaxy Viewport ── */}
+        {/* Galaxy Viewport – bright and vivid */}
         <div className="relative w-full max-w-[700px] aspect-square mx-auto my-auto">
-          {/* Galaxy background layer – subtle and darkened */}
           <div className="absolute inset-0 flex items-center justify-center z-0">
             <img
               src="/galaxy.jpg"
               alt=""
-              className="w-full h-full object-contain opacity-30"
+              className="w-full h-full object-contain opacity-100"
               style={{
-                filter: 'brightness(0.6) blur(0px)',
+                filter: 'drop-shadow(0 0 30px rgba(168,85,247,0.5))',
                 mixBlendMode: 'screen',
               }}
             />
           </div>
 
-          {/* Central holographic label */}
+          {/* Holographic center label */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
             <div className="text-[10px] tracking-[0.3em] text-purple-300/70 font-semibold">THE CORE</div>
             <div className="text-[8px] text-gray-500">Astira Central Hub</div>
@@ -112,7 +108,7 @@ export default function CosmicCompass() {
           </div>
         </div>
 
-        {/* Bottom controls row */}
+        {/* Bottom controls */}
         <div className="flex gap-3 mt-2">
           {['My Location', 'Filters', 'Jump Gate'].map((btn) => (
             <button
@@ -125,7 +121,7 @@ export default function CosmicCompass() {
         </div>
       </div>
 
-      {/* ── Planet Info Bottom Card ── */}
+      {/* Planet Info Bottom Card */}
       <AnimatePresence>
         {selectedPlanet && (
           <motion.div
@@ -179,7 +175,7 @@ export default function CosmicCompass() {
         )}
       </AnimatePresence>
 
-      {/* Additional global style for darker glass */}
+      {/* Dark glass utility */}
       <style jsx global>{`
         .glass-dark {
           background: rgba(0, 0, 0, 0.5);
