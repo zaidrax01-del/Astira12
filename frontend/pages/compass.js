@@ -6,21 +6,20 @@ import SpaceBackground from '../components/animations/SpaceBackground'
 
 /* ── Planet data ── */
 const PLANETS = [
-  { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', img: '/planet-cryonix.png', angle: 0, distance: 38, habitability: 'Low', population: '1.2M', rarity: 'Legendary', explorer: 'AstralNomad', description: 'A mysterious ice planet drifting through the outer reaches of the Astira galaxy…' },
-  { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', img: '/planet-solvora.png', angle: 45, distance: 44, habitability: 'Extremely Hostile', population: '850K', rarity: 'Legendary', explorer: 'EmberKnight', description: 'A legendary volcanic planet born from collapsing stars and endless cosmic fire…' },
-  { id: 'dunora', name: 'Dunora', title: 'The Timeless Dune', color: '#d9a04a', img: '/planet-dunora.png', angle: 90, distance: 40, habitability: 'Moderate', population: '620K', rarity: 'Legendary', explorer: 'SandWalker', description: 'An ancient desert world shaped by endless cosmic winds…' },
-  { id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399', img: '/planet-lumerion.png', angle: 135, distance: 36, habitability: 'Highly Stable', population: '2.1M', rarity: 'Legendary', explorer: 'StarWeaver', description: 'A breathtaking crystal world formed from condensed cosmic stardust…' },
-  { id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e', img: '/planet-verdana.png', angle: 180, distance: 42, habitability: 'Extremely High', population: '3.4M', rarity: 'Legendary', explorer: 'GaiaTender', description: 'A legendary living world overflowing with cosmic life energy…' },
-  { id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff', img: '/planet-zenithor.png', angle: 225, distance: 39, habitability: 'Controlled Synthetic Zones', population: '480K', rarity: 'Legendary', explorer: 'CorePilot', description: 'A colossal artificial world forged by an ancient hyper-advanced civilization…' },
-  { id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333', img: '/planet-infernox.png', angle: 270, distance: 46, habitability: 'Near Impossible', population: '210K', rarity: 'Mythic Legendary', explorer: 'PyreLord', description: 'A catastrophic fire planet consumed by endless volcanic chaos…' },
-  { id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff', img: '/planet-glacieron.png', angle: 315, distance: 43, habitability: 'Extremely Harsh', population: '180K', rarity: 'Mythic Legendary', explorer: 'FrostWarden', description: 'A colossal frozen titan trapped in an endless cosmic winter…' },
+  { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', img: '/planet-cryonix.png', angle: 0, distance: 38, habitability: 'Low', population: '1.2M', rarity: 'Legendary', explorer: 'AstralNomad', description: 'A mysterious ice planet…' },
+  { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', img: '/planet-solvora.png', angle: 45, distance: 44, habitability: 'Extremely Hostile', population: '850K', rarity: 'Legendary', explorer: 'EmberKnight', description: 'A legendary volcanic planet…' },
+  { id: 'dunora', name: 'Dunora', title: 'The Timeless Dune', color: '#d9a04a', img: '/planet-dunora.png', angle: 90, distance: 40, habitability: 'Moderate', population: '620K', rarity: 'Legendary', explorer: 'SandWalker', description: 'An ancient desert world…' },
+  { id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399', img: '/planet-lumerion.png', angle: 135, distance: 36, habitability: 'Highly Stable', population: '2.1M', rarity: 'Legendary', explorer: 'StarWeaver', description: 'A breathtaking crystal world…' },
+  { id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e', img: '/planet-verdana.png', angle: 180, distance: 42, habitability: 'Extremely High', population: '3.4M', rarity: 'Legendary', explorer: 'GaiaTender', description: 'A legendary living world…' },
+  { id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff', img: '/planet-zenithor.png', angle: 225, distance: 39, habitability: 'Controlled Synthetic Zones', population: '480K', rarity: 'Legendary', explorer: 'CorePilot', description: 'A colossal artificial world…' },
+  { id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333', img: '/planet-infernox.png', angle: 270, distance: 46, habitability: 'Near Impossible', population: '210K', rarity: 'Mythic Legendary', explorer: 'PyreLord', description: 'A catastrophic fire planet…' },
+  { id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff', img: '/planet-glacieron.png', angle: 315, distance: 43, habitability: 'Extremely Harsh', population: '180K', rarity: 'Mythic Legendary', explorer: 'FrostWarden', description: 'A colossal frozen titan…' },
 ]
 
 export default function CosmicCompass() {
   const [selectedPlanet, setSelectedPlanet] = useState(null)
   const [rotation, setRotation] = useState(0)
 
-  // Slow continuous rotation
   useEffect(() => {
     const interval = setInterval(() => {
       setRotation((prev) => (prev + 0.01) % 360)
@@ -33,7 +32,20 @@ export default function CosmicCompass() {
       <SpaceBackground />
       <Navbar />
 
-      {/* Main content container */}
+      {/* ── Full‑screen galaxy background that blends naturally ── */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url('/galaxy.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          // The mask fades the edges so the galaxy blends into the black space
+          WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0) 70%)',
+          maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0) 70%)',
+        }}
+      />
+
       <div className="relative z-10 h-full flex flex-col items-center justify-between pt-20 pb-4 px-4">
         {/* Top controls */}
         <div className="w-full max-w-3xl flex gap-3 mb-2">
@@ -49,20 +61,8 @@ export default function CosmicCompass() {
           </button>
         </div>
 
-        {/* Galaxy Viewport – bright and vivid */}
+        {/* Galaxy Viewport with planets */}
         <div className="relative w-full max-w-[700px] aspect-square mx-auto my-auto">
-          <div className="absolute inset-0 flex items-center justify-center z-0">
-            <img
-              src="/galaxy.jpg"
-              alt=""
-              className="w-full h-full object-contain opacity-100"
-              style={{
-                filter: 'drop-shadow(0 0 30px rgba(168,85,247,0.5))',
-                mixBlendMode: 'screen',
-              }}
-            />
-          </div>
-
           {/* Holographic center label */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
             <div className="text-[10px] tracking-[0.3em] text-purple-300/70 font-semibold">THE CORE</div>
