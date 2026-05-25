@@ -1,7 +1,7 @@
 'use client'
-import { useState, useContext, useEffect, useRef, useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Stars, Ring } from '@react-three/drei'
+import { useState, useContext, useEffect, useRef, useMemo, Suspense } from 'react'
+import { Canvas, useFrame, useLoader } from '@react-three/fiber'
+import { OrbitControls, Stars, Ring, Sphere } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Web3Context } from '../context/Web3Context'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -12,78 +12,116 @@ import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 import * as THREE from 'three'
 
-/* ---------- 3D Holographic Planet ---------- */
-function HolographicPlanet() {
+/* ---------- Photorealistic Planet with Atmosphere, Ring, and Debris ---------- */
+function PlanetScene() {
   const planetRef = useRef()
   const ringRef = useRef()
-  const particlesRef = useRef()
+  const debrisRef = useRef()
 
-  // Procedural planet texture (gradient + stars)
-  const texture = useMemo(() => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 1024
-    canvas.height = 512
-    const ctx = canvas.getContext('2d')
-    const grad = ctx.createLinearGradient(0, 0, 1024, 512)
-    grad.addColorStop(0, '#a855f7')
-    grad.addColorStop(0.3, '#ec4899')
-    grad.addColorStop(0.6, '#3b82f6')
-    grad.addColorStop(1, '#0f172a')
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, 1024, 512)
-    for (let i = 0; i < 3000; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.4})`
-      ctx.fillRect(Math.random() * 1024, Math.random() * 512, 2, 2)
-    }
-    return new THREE.CanvasTexture(canvas)
+  // Load a high‑quality alien planet texture (replace this URL with your own 2048x1024 jpg)
+  const planetTexture = useLoader(THREE.TextureLoader, 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Mars_Valles_Marineris.jpeg/1024px-Mars_Valles_Marineris.jpeg')
+  // (Optional) Load ring texture – a semi‑transparent ice‑ring
+  const ringTexture = useLoader(THREE.TextureLoader, 'https://threejs.org/examples/textures/sprites/snowflake1.png') // placeholder; you can replace with a proper ring texture
+
+  // Fresnel atmosphere shader
+  const atmosphereMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vec3 worldNormal = normalize(mat3(modelMatrix) * normal);
+          vNormal = worldNormal;
+          vPosition = worldPos.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform vec3 uColor;
+        uniform float uIntensity;
+        void main() {
+          vec3 viewDir = normalize(cameraPosition - vPosition);
+          float fresnel = 1.0 - abs(dot(viewDir, vNormal));
+          fresnel = pow(fresnel, 3.0);
+          gl_FragColor = vec4(uColor, fresnel * uIntensity);
+        }
+      `,
+      uniforms: {
+        uColor: { value: new THREE.Color('#a855f7') },
+        uIntensity: { value: 0.6 },
+      },
+      transparent: true,
+      depthWrite: false,
+      side: THREE.BackSide,
+    })
   }, [])
 
-  // Orbiting particles
-  const particleCount = 400
-  const particlePositions = useMemo(() => {
-    const arr = new Float32Array(particleCount * 3)
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2
-      const radius = 2.3 + Math.random() * 0.4
+  // Debris particles (floating rocks)
+  const debrisCount = 200
+  const debrisPositions = useMemo(() => {
+    const arr = new Float32Array(debrisCount * 3)
+    for (let i = 0; i < debrisCount; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const radius = 2.8 + Math.random() * 1.5
+      const height = (Math.random() - 0.5) * 1.2
       arr[i * 3] = Math.cos(angle) * radius
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 0.6
+      arr[i * 3 + 1] = height
       arr[i * 3 + 2] = Math.sin(angle) * radius
     }
     return arr
   }, [])
 
   useFrame(({ clock }) => {
-    if (planetRef.current) planetRef.current.rotation.y = clock.getElapsedTime() * 0.08
+    if (planetRef.current) planetRef.current.rotation.y = clock.getElapsedTime() * 0.05
     if (ringRef.current) {
-      ringRef.current.rotation.x = Math.PI / 3
-      ringRef.current.rotation.y = clock.getElapsedTime() * 0.2
+      ringRef.current.rotation.x = Math.PI / 2.5
+      ringRef.current.rotation.y = clock.getElapsedTime() * 0.1
     }
-    if (particlesRef.current) particlesRef.current.rotation.y = clock.getElapsedTime() * 0.12
+    if (debrisRef.current) debrisRef.current.rotation.y = clock.getElapsedTime() * 0.15
   })
 
   return (
     <group>
-      {/* Planet */}
+      {/* Main planet with high‑res texture */}
       <mesh ref={planetRef}>
-        <sphereGeometry args={[2, 64, 64]} />
-        <meshStandardMaterial map={texture} roughness={0.4} metalness={0.2} emissive="#1e1b4b" emissiveIntensity={0.3} />
+        <sphereGeometry args={[2, 128, 128]} />
+        <meshStandardMaterial
+          map={planetTexture}
+          roughness={0.7}
+          metalness={0.1}
+          bumpScale={0.05}
+        />
       </mesh>
-      {/* Glowing atmosphere */}
+
+      {/* Atmosphere glow (Fresnel) */}
       <mesh>
-        <sphereGeometry args={[2.2, 64, 64]} />
-        <meshBasicMaterial color="#a855f7" transparent opacity={0.08} side={THREE.BackSide} />
+        <sphereGeometry args={[2.15, 64, 64]} />
+        <primitive object={atmosphereMaterial} attach="material" />
       </mesh>
-      {/* Energy ring */}
+
+      {/* Realistic ring */}
       <mesh ref={ringRef}>
-        <ringGeometry args={[2.4, 2.7, 64]} />
-        <meshBasicMaterial color="#c084fc" side={THREE.DoubleSide} transparent opacity={0.35} />
+        <ringGeometry args={[2.3, 3.0, 128]} />
+        <meshStandardMaterial
+          map={ringTexture}
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.5}
+          roughness={0.4}
+          metalness={0.0}
+          depthWrite={false}
+        />
       </mesh>
-      {/* Orbiting particles */}
-      <points ref={particlesRef}>
+
+      {/* Orbiting debris (tiny rocks) */}
+      <points ref={debrisRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={particleCount} array={particlePositions} itemSize={3} />
+          <bufferAttribute attach="attributes-position" count={debrisCount} array={debrisPositions} itemSize={3} />
         </bufferGeometry>
-        <pointsMaterial color="#e0c0ff" size={0.04} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <pointsMaterial color="#aaaaaa" size={0.06} blending={THREE.AdditiveBlending} depthWrite={false} />
       </points>
     </group>
   )
@@ -184,7 +222,6 @@ export default function CreatePlanet() {
     } catch (err) { alert('Transaction failed: ' + (err.message || err)); setLoading(false) }
   }
 
-  // Sample planet variations for carousel
   const variations = [
     { img: '/planet-cryonix.png', name: 'Cryonix', rarity: 'Legendary' },
     { img: '/planet-solvora.png', name: 'Solvora', rarity: 'Legendary' },
@@ -195,27 +232,25 @@ export default function CreatePlanet() {
 
   return (
     <div className="relative h-screen w-screen bg-black overflow-hidden flex flex-col">
-      {/* Deep space + nebula background */}
       <SpaceBackground />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-purple-900/10 to-transparent pointer-events-none" />
-
       <Navbar />
 
       <div className="flex-1 flex flex-col lg:flex-row pt-16 px-4 lg:px-8 pb-4 gap-4">
-        {/* ── Center 3D Planet (full‑screen canvas) ── */}
+        {/* Center 3D Planet */}
         <div className="flex-1 h-[45vh] lg:h-full relative order-1 lg:order-2">
-          <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
+          <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 2]}>
             <ambientLight intensity={0.6} />
-            <pointLight position={[10, 10, 10]} intensity={1.2} />
+            <directionalLight position={[5, 3, 5]} intensity={1.2} />
             <Stars radius={30} depth={40} count={2000} factor={5} saturation={0.2} fade speed={0.8} />
             <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} minDistance={3} maxDistance={12} />
-            <HolographicPlanet />
+            <Suspense fallback={null}>
+              <PlanetScene />
+            </Suspense>
           </Canvas>
-          {/* Overlay glow */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-purple-500/5 via-transparent to-transparent" />
         </div>
 
-        {/* ── Right Floating Panel ── */}
+        {/* Right Floating Panel */}
         <div className="lg:w-[340px] flex-shrink-0 order-2 lg:order-3 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -265,7 +300,7 @@ export default function CreatePlanet() {
         </div>
       </div>
 
-      {/* ── Bottom Carousel ── */}
+      {/* Bottom Carousel */}
       <div className="hidden lg:flex gap-3 px-8 pb-4 overflow-x-auto">
         <h3 className="text-sm text-gray-400 self-center">Variations</h3>
         {variations.map((v, i) => (
