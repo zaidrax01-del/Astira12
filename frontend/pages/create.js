@@ -17,28 +17,30 @@ function PlanetScene() {
 
   const texture = useLoader(
     THREE.TextureLoader,
-    'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2070&auto=format&fit=crop'
+    'https://threejs.org/examples/textures/planets/jupiter.jpg'
   )
 
   useFrame(({ clock }) => {
     if (planetRef.current) {
       planetRef.current.rotation.y =
-        clock.getElapsedTime() * 0.05
+        clock.getElapsedTime() * 0.03
     }
 
     if (ringRef.current) {
       ringRef.current.rotation.z =
-        clock.getElapsedTime() * 0.1
+        clock.getElapsedTime() * 0.08
     }
   })
 
   const particles = useMemo(() => {
-    const positions = new Float32Array(500 * 3)
+    const positions = new Float32Array(1000 * 3)
 
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 1000; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 20
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 20
+      positions[i * 3 + 1] =
+        (Math.random() - 0.5) * 20
+      positions[i * 3 + 2] =
+        (Math.random() - 0.5) * 20
     }
 
     return positions
@@ -47,52 +49,51 @@ function PlanetScene() {
   return (
     <group>
 
-      {/* Planet Glow */}
+      {/* Glow */}
       <mesh>
-        <sphereGeometry args={[3.9, 64, 64]} />
+        <sphereGeometry args={[2.8, 64, 64]} />
+
         <meshBasicMaterial
           color="#8b5cf6"
           transparent
-          opacity={0.08}
+          opacity={0.15}
         />
       </mesh>
 
-      {/* Main Planet */}
+      {/* Planet */}
       <mesh ref={planetRef}>
-        <sphereGeometry args={[3.2, 256, 256]} />
+        <sphereGeometry args={[2.2, 256, 256]} />
 
         <meshStandardMaterial
           map={texture}
-          roughness={0.6}
+          roughness={0.7}
           metalness={0.1}
         />
       </mesh>
 
       {/* Atmosphere */}
       <mesh scale={1.08}>
-        <sphereGeometry args={[3.2, 128, 128]} />
+        <sphereGeometry args={[2.2, 128, 128]} />
 
         <meshBasicMaterial
-          color="#8b5cf6"
+          color="#c084fc"
           transparent
-          opacity={0.15}
+          opacity={0.12}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* Energy Ring */}
+      {/* Ring */}
       <mesh
         ref={ringRef}
-        rotation={[1.2, 0, 0]}
+        rotation={[1.1, 0, 0]}
       >
-        <torusGeometry args={[4.8, 0.08, 16, 200]} />
+        <torusGeometry args={[3.4, 0.04, 16, 200]} />
 
-        <meshBasicMaterial
-          color="#c084fc"
-        />
+        <meshBasicMaterial color="#d8b4fe" />
       </mesh>
 
-      {/* Floating Particles */}
+      {/* Particles */}
       <points>
         <bufferGeometry>
           <bufferAttribute
@@ -104,10 +105,11 @@ function PlanetScene() {
         </bufferGeometry>
 
         <pointsMaterial
-          size={0.03}
+          size={0.02}
           color="#ffffff"
         />
       </points>
+
     </group>
   )
 }
@@ -115,6 +117,7 @@ function PlanetScene() {
 /* ---------------- PAGE ---------------- */
 
 export default function CreatePlanet() {
+
   const [prompt, setPrompt] = useState('')
 
   const variations = [
@@ -122,49 +125,199 @@ export default function CreatePlanet() {
     '/planet2.png',
     '/planet3.png',
     '/planet4.png',
-    '/planet5.png',
   ]
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden text-white">
 
-      {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_35%,#000_100%)]" />
+      {/* BACKGROUND */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_40%,#000_100%)]" />
 
-      {/* Extra Glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-purple-500/20 blur-[160px]" />
+      <div className="
+        absolute
+        top-1/3
+        left-1/2
+        -translate-x-1/2
+        w-[500px]
+        lg:w-[900px]
+        h-[500px]
+        lg:h-[900px]
+        rounded-full
+        bg-purple-500/20
+        blur-[120px]
+      " />
 
-      {/* Navbar */}
+      {/* NAVBAR */}
       <Navbar />
 
-      {/* Main Layout */}
-      <div className="relative z-10 pt-24 px-6 lg:px-10 pb-10">
+      {/* CONTENT */}
+      <div className="
+        relative
+        z-10
+        pt-24
+        px-4
+        lg:px-10
+        pb-10
+      ">
 
-        <div className="grid lg:grid-cols-[350px_1fr_340px] gap-6 items-center">
+        <div className="
+          flex
+          flex-col
+          lg:grid
+          lg:grid-cols-[340px_1fr_340px]
+          gap-6
+          items-start
+        ">
+
+          {/* MOBILE PLANET FIRST */}
+          <div className="
+            order-1
+            lg:order-2
+            relative
+            w-full
+            h-[320px]
+            lg:h-[820px]
+            flex
+            items-center
+            justify-center
+          ">
+
+            {/* Glow */}
+            <div className="
+              absolute
+              w-[320px]
+              h-[320px]
+              lg:w-[700px]
+              lg:h-[700px]
+              rounded-full
+              bg-purple-500/20
+              blur-[100px]
+            " />
+
+            <Canvas
+              camera={{
+                position: [0, 0, 7],
+                fov: 45,
+              }}
+            >
+
+              <fog
+                attach="fog"
+                args={['#070114', 8, 20]}
+              />
+
+              <ambientLight intensity={0.5} />
+
+              <pointLight
+                position={[5, 5, 5]}
+                intensity={2.5}
+                color="#8b5cf6"
+              />
+
+              <pointLight
+                position={[-5, -5, -5]}
+                intensity={2}
+                color="#06b6d4"
+              />
+
+              <Stars
+                radius={100}
+                depth={50}
+                count={3000}
+                factor={4}
+                fade
+              />
+
+              <OrbitControls
+                autoRotate
+                autoRotateSpeed={0.25}
+                enableZoom={false}
+              />
+
+              <Suspense fallback={null}>
+                <PlanetScene />
+              </Suspense>
+
+            </Canvas>
+
+            {/* CONTROLS */}
+            <div className="
+              absolute
+              bottom-2
+              lg:bottom-10
+              glass-panel
+              rounded-full
+              px-5
+              py-3
+              flex
+              items-center
+              gap-4
+            ">
+
+              <button>◀</button>
+
+              <button className="text-sm">
+                360°
+              </button>
+
+              <button>▶</button>
+
+            </div>
+          </div>
 
           {/* LEFT PANEL */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel p-6 rounded-[32px] h-[760px]"
+            className="
+              order-2
+              lg:order-1
+              w-full
+              glass-panel
+              rounded-[28px]
+              p-5
+              lg:h-[760px]
+            "
           >
 
-            <h1 className="text-5xl font-black leading-none">
+            <h1 className="
+              text-3xl
+              lg:text-5xl
+              font-black
+              leading-none
+            ">
               AI-DRIVEN
             </h1>
 
-            <h2 className="text-5xl font-black text-purple-400 leading-none mb-4">
+            <h2 className="
+              text-3xl
+              lg:text-5xl
+              font-black
+              text-purple-400
+              leading-none
+              mb-3
+            ">
               PLANET GENESIS
             </h2>
 
-            <p className="text-gray-400 mb-8">
+            <p className="
+              text-gray-400
+              text-sm
+              mb-6
+            ">
               Describe it. Generate it. Own it.
             </p>
 
+            {/* INPUT */}
             <div className="space-y-5">
 
               <div>
-                <p className="text-sm mb-2 text-gray-300">
+
+                <p className="
+                  text-sm
+                  text-gray-300
+                  mb-2
+                ">
                   Describe Your Planet
                 </p>
 
@@ -173,10 +326,11 @@ export default function CreatePlanet() {
                   onChange={(e) =>
                     setPrompt(e.target.value)
                   }
-                  placeholder="A planet with crystal oceans, floating islands, aurora skies..."
+                  placeholder="Crystal oceans, floating islands, purple atmosphere..."
                   className="
                     w-full
-                    h-40
+                    h-32
+                    lg:h-44
                     rounded-2xl
                     bg-white/5
                     border
@@ -188,14 +342,25 @@ export default function CreatePlanet() {
                     backdrop-blur-xl
                   "
                 />
+
               </div>
 
+              {/* STYLE */}
               <div>
-                <p className="text-sm mb-3 text-gray-300">
+
+                <p className="
+                  text-sm
+                  text-gray-300
+                  mb-3
+                ">
                   Style
                 </p>
 
-                <div className="flex gap-3 flex-wrap">
+                <div className="
+                  flex
+                  flex-wrap
+                  gap-2
+                ">
 
                   {[
                     'Cosmic',
@@ -212,9 +377,9 @@ export default function CreatePlanet() {
                         bg-white/5
                         border
                         border-white/10
+                        text-sm
                         hover:border-purple-500
                         transition
-                        text-sm
                       "
                     >
                       {item}
@@ -222,12 +387,18 @@ export default function CreatePlanet() {
                   ))}
 
                 </div>
+
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* STATS */}
+              <div className="
+                grid
+                grid-cols-2
+                gap-3
+              ">
 
                 <div className="stat-card">
-                  <p className="text-gray-400 text-xs">
+                  <p className="stat-label">
                     Type
                   </p>
 
@@ -235,7 +406,7 @@ export default function CreatePlanet() {
                 </div>
 
                 <div className="stat-card">
-                  <p className="text-gray-400 text-xs">
+                  <p className="stat-label">
                     Energy
                   </p>
 
@@ -243,7 +414,7 @@ export default function CreatePlanet() {
                 </div>
 
                 <div className="stat-card">
-                  <p className="text-gray-400 text-xs">
+                  <p className="stat-label">
                     Rarity
                   </p>
 
@@ -251,7 +422,7 @@ export default function CreatePlanet() {
                 </div>
 
                 <div className="stat-card">
-                  <p className="text-gray-400 text-xs">
+                  <p className="stat-label">
                     Habitability
                   </p>
 
@@ -260,107 +431,63 @@ export default function CreatePlanet() {
 
               </div>
 
-              <GlowButton className="w-full mt-6">
+              <GlowButton className="w-full">
                 Generate Planet
               </GlowButton>
 
             </div>
           </motion.div>
 
-          {/* CENTER PLANET */}
-          <div className="relative h-[820px] flex items-center justify-center">
-
-            {/* Planet Glow */}
-            <div className="absolute w-[750px] h-[750px] rounded-full bg-purple-500/20 blur-[120px]" />
-
-            <Canvas camera={{ position: [0, 0, 9], fov: 45 }}>
-
-              <fog
-                attach="fog"
-                args={['#070114', 10, 25]}
-              />
-
-              <ambientLight intensity={0.4} />
-
-              <pointLight
-                position={[5, 5, 5]}
-                intensity={3}
-                color="#8b5cf6"
-              />
-
-              <pointLight
-                position={[-5, -5, -5]}
-                intensity={2}
-                color="#06b6d4"
-              />
-
-              <Stars
-                radius={100}
-                depth={50}
-                count={4000}
-                factor={4}
-                fade
-              />
-
-              <OrbitControls
-                autoRotate
-                autoRotateSpeed={0.3}
-                enableZoom={false}
-              />
-
-              <Suspense fallback={null}>
-                <PlanetScene />
-              </Suspense>
-
-            </Canvas>
-
-            {/* Bottom Controls */}
-            <div className="
-              absolute
-              bottom-10
-              flex
-              items-center
-              gap-4
-              glass-panel
-              px-6
-              py-4
-              rounded-full
-            ">
-
-              <button>◀</button>
-
-              <button>360°</button>
-
-              <button>▶</button>
-
-            </div>
-          </div>
-
           {/* RIGHT PANEL */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel p-6 rounded-[32px] h-[760px]"
+            className="
+              order-3
+              w-full
+              glass-panel
+              rounded-[28px]
+              p-5
+              lg:h-[760px]
+            "
           >
 
-            <h2 className="text-2xl font-bold mb-5">
+            <h2 className="
+              text-2xl
+              font-bold
+              mb-5
+            ">
               Your Generated Planet
             </h2>
 
-            <img
-              src="/planet-preview.png"
-              className="
-                w-full
-                h-56
-                object-cover
-                rounded-2xl
-                border
-                border-white/10
-                mb-6
-              "
-            />
+            {/* FIXED IMAGE */}
+            <div className="
+              w-full
+              h-52
+              rounded-2xl
+              overflow-hidden
+              border
+              border-white/10
+              bg-white/5
+            ">
 
-            <div className="space-y-4">
+              <img
+                src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1200&auto=format&fit=crop"
+                alt="planet"
+                className="
+                  w-full
+                  h-full
+                  object-cover
+                "
+              />
+
+            </div>
+
+            {/* INFO */}
+            <div className="
+              mt-6
+              space-y-4
+            ">
 
               <div className="info-row">
                 <span>Name</span>
@@ -374,6 +501,7 @@ export default function CreatePlanet() {
 
               <div className="info-row">
                 <span>Rarity</span>
+
                 <span className="text-purple-400">
                   Epic
                 </span>
@@ -381,6 +509,7 @@ export default function CreatePlanet() {
 
               <div className="info-row">
                 <span>Habitability</span>
+
                 <span className="text-green-400">
                   78%
                 </span>
@@ -388,13 +517,21 @@ export default function CreatePlanet() {
 
             </div>
 
+            {/* TRAITS */}
             <div className="mt-8">
 
-              <h3 className="mb-4 font-semibold">
+              <h3 className="
+                font-semibold
+                mb-4
+              ">
                 Special Traits
               </h3>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="
+                grid
+                grid-cols-2
+                gap-3
+              ">
 
                 {[
                   'Crystal Oceans',
@@ -424,23 +561,29 @@ export default function CreatePlanet() {
               </GlowButton>
 
             </div>
+
           </motion.div>
 
         </div>
 
-        {/* Bottom Carousel */}
-        <div className="flex gap-4 mt-8 overflow-x-auto pb-4">
+        {/* CAROUSEL */}
+        <div className="
+          flex
+          gap-4
+          mt-8
+          overflow-x-auto
+          pb-4
+        ">
 
           {variations.map((planet, i) => (
             <div
               key={i}
               className="
-                min-w-[140px]
+                min-w-[120px]
+                lg:min-w-[150px]
                 glass-panel
-                p-2
                 rounded-2xl
-                border
-                border-white/10
+                p-2
               "
             >
 
@@ -448,7 +591,8 @@ export default function CreatePlanet() {
                 src={planet}
                 className="
                   w-full
-                  h-28
+                  h-24
+                  lg:h-32
                   object-cover
                   rounded-xl
                 "
@@ -461,7 +605,7 @@ export default function CreatePlanet() {
 
       </div>
 
-      {/* Styles */}
+      {/* STYLES */}
       <style jsx>{`
         .glass-panel {
           background: rgba(10, 10, 20, 0.45);
@@ -475,9 +619,15 @@ export default function CreatePlanet() {
 
         .stat-card {
           padding: 14px;
-          border-radius: 20px;
+          border-radius: 18px;
           background: rgba(255,255,255,0.04);
           border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .stat-label {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-bottom: 6px;
         }
 
         .info-row {
@@ -485,7 +635,6 @@ export default function CreatePlanet() {
           justify-content: space-between;
           padding: 12px 0;
           border-bottom: 1px solid rgba(255,255,255,0.08);
-          color: white;
         }
       `}</style>
 
