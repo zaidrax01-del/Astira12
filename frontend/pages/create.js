@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { OrbitControls, Stars } from '@react-three/drei'
+import { Stars } from '@react-three/drei'
 import { motion } from 'framer-motion'
 import * as THREE from 'three'
 
@@ -13,9 +13,7 @@ import GlowButton from '../components/ui/GlowButton'
 
 function PlanetScene() {
   const planetRef = useRef()
-  const ringRef = useRef()
 
-  // USE YOUR GENERATED TEXTURE
   const texture = useLoader(
     THREE.TextureLoader,
     '/planet-texture.png'
@@ -26,17 +24,12 @@ function PlanetScene() {
       planetRef.current.rotation.y =
         clock.getElapsedTime() * 0.02
     }
-
-    if (ringRef.current) {
-      ringRef.current.rotation.z =
-        clock.getElapsedTime() * 0.05
-    }
   })
 
   const particles = useMemo(() => {
-    const positions = new Float32Array(250 * 3)
+    const positions = new Float32Array(150 * 3)
 
-    for (let i = 0; i < 250; i++) {
+    for (let i = 0; i < 150; i++) {
       positions[i * 3] =
         (Math.random() - 0.5) * 20
 
@@ -53,9 +46,9 @@ function PlanetScene() {
   return (
     <group>
 
-      {/* PLANET GLOW */}
+      {/* OUTER GLOW */}
       <mesh>
-        <sphereGeometry args={[2.8, 64, 64]} />
+        <sphereGeometry args={[2.7, 32, 32]} />
 
         <meshBasicMaterial
           color="#9333ea"
@@ -66,7 +59,7 @@ function PlanetScene() {
 
       {/* MAIN PLANET */}
       <mesh ref={planetRef}>
-        <sphereGeometry args={[2.2, 64, 64]} />
+        <sphereGeometry args={[2.2, 32, 32]} />
 
         <meshStandardMaterial
           map={texture}
@@ -76,30 +69,18 @@ function PlanetScene() {
       </mesh>
 
       {/* ATMOSPHERE */}
-      <mesh scale={1.06}>
-        <sphereGeometry args={[2.2, 64, 64]} />
+      <mesh scale={1.05}>
+        <sphereGeometry args={[2.2, 32, 32]} />
 
         <meshBasicMaterial
           color="#c084fc"
           transparent
-          opacity={0.1}
+          opacity={0.08}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* ENERGY RING */}
-      <mesh
-        ref={ringRef}
-        rotation={[1.1, 0, 0]}
-      >
-        <torusGeometry args={[3.4, 0.04, 16, 200]} />
-
-        <meshBasicMaterial
-          color="#d8b4fe"
-        />
-      </mesh>
-
-      {/* PARTICLES */}
+      {/* FLOATING PARTICLES */}
       <points>
         <bufferGeometry>
           <bufferAttribute
@@ -111,7 +92,7 @@ function PlanetScene() {
         </bufferGeometry>
 
         <pointsMaterial
-          size={0.02}
+          size={0.03}
           color="#ffffff"
         />
       </points>
@@ -137,8 +118,8 @@ export default function CreatePlanet() {
     <div className="
       relative
       min-h-screen
-      bg-black
       overflow-hidden
+      bg-black
       text-white
     ">
 
@@ -146,7 +127,7 @@ export default function CreatePlanet() {
       <div className="
         absolute
         inset-0
-        bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_45%,#000_100%)]
+        bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_40%,#000_100%)]
       " />
 
       {/* PURPLE GLOW */}
@@ -155,10 +136,10 @@ export default function CreatePlanet() {
         top-1/4
         left-1/2
         -translate-x-1/2
-        w-[500px]
-        h-[500px]
-        lg:w-[900px]
-        lg:h-[900px]
+        w-[400px]
+        h-[400px]
+        lg:w-[800px]
+        lg:h-[800px]
         rounded-full
         bg-purple-500/20
         blur-[120px]
@@ -181,66 +162,60 @@ export default function CreatePlanet() {
           flex
           flex-col
           lg:grid
-          lg:grid-cols-[340px_1fr_340px]
+          lg:grid-cols-[320px_1fr_320px]
           gap-6
         ">
 
-          {/* PLANET SECTION */}
+          {/* PLANET */}
           <div className="
             order-1
             lg:order-2
             relative
             h-[320px]
-            lg:h-[820px]
+            lg:h-[700px]
             flex
             items-center
             justify-center
           ">
 
-            {/* PLANET OUTER GLOW */}
+            {/* PLANET GLOW */}
             <div className="
               absolute
-              w-[320px]
-              h-[320px]
-              lg:w-[700px]
-              lg:h-[700px]
+              w-[280px]
+              h-[280px]
+              lg:w-[600px]
+              lg:h-[600px]
               rounded-full
               bg-purple-500/20
-              blur-[100px]
+              blur-[90px]
             " />
 
             <Canvas
+              gl={{
+                antialias: false,
+                alpha: true,
+                powerPreference: 'low-power',
+              }}
+              dpr={1}
               camera={{
                 position: [0, 0, 7],
                 fov: 45,
               }}
             >
 
-              <ambientLight intensity={0.6} />
+              <ambientLight intensity={1} />
 
-              <pointLight
-                position={[5, 5, 5]}
-                intensity={2}
-                color="#8b5cf6"
-              />
-
-              <pointLight
-                position={[-5, -5, -5]}
-                intensity={1.5}
-                color="#06b6d4"
+              <directionalLight
+                position={[3, 3, 3]}
+                intensity={1}
               />
 
               <Stars
-                radius={100}
-                depth={50}
-                count={2000}
-                factor={4}
+                radius={50}
+                depth={20}
+                count={300}
+                factor={2}
                 fade
-              />
-
-              <OrbitControls
-                enableZoom={false}
-                enablePan={false}
               />
 
               <Suspense fallback={null}>
@@ -248,30 +223,6 @@ export default function CreatePlanet() {
               </Suspense>
 
             </Canvas>
-
-            {/* CONTROL BUTTON */}
-            <div className="
-              absolute
-              bottom-2
-              lg:bottom-10
-              glass-panel
-              rounded-full
-              px-5
-              py-3
-              flex
-              items-center
-              gap-4
-            ">
-
-              <button>◀</button>
-
-              <button className="text-sm">
-                360°
-              </button>
-
-              <button>▶</button>
-
-            </div>
 
           </div>
 
@@ -285,7 +236,6 @@ export default function CreatePlanet() {
               glass-panel
               rounded-[28px]
               p-5
-              lg:h-[760px]
             "
           >
 
@@ -295,7 +245,7 @@ export default function CreatePlanet() {
               font-black
               leading-none
             ">
-              AI-DRIVEN
+              AI PLANET
             </h1>
 
             <h2 className="
@@ -306,7 +256,7 @@ export default function CreatePlanet() {
               leading-none
               mb-3
             ">
-              PLANET GENESIS
+              GENERATOR
             </h2>
 
             <p className="
@@ -314,10 +264,10 @@ export default function CreatePlanet() {
               text-sm
               mb-6
             ">
-              Describe it. Generate it. Own it.
+              Create cinematic worlds using AI.
             </p>
 
-            {/* INPUT */}
+            {/* TEXTAREA */}
             <div className="space-y-5">
 
               <div>
@@ -335,11 +285,10 @@ export default function CreatePlanet() {
                   onChange={(e) =>
                     setPrompt(e.target.value)
                   }
-                  placeholder="Crystal oceans, floating islands..."
+                  placeholder="Crystal oceans, glowing skies, floating islands..."
                   className="
                     w-full
-                    h-32
-                    lg:h-44
+                    h-36
                     rounded-2xl
                     bg-white/5
                     border
@@ -348,13 +297,12 @@ export default function CreatePlanet() {
                     text-sm
                     outline-none
                     resize-none
-                    backdrop-blur-xl
                   "
                 />
 
               </div>
 
-              {/* STYLE */}
+              {/* STYLES */}
               <div>
 
                 <p className="
@@ -362,7 +310,7 @@ export default function CreatePlanet() {
                   text-gray-300
                   mb-3
                 ">
-                  Style
+                  Planet Style
                 </p>
 
                 <div className="
@@ -387,8 +335,6 @@ export default function CreatePlanet() {
                         border
                         border-white/10
                         text-sm
-                        hover:border-purple-500
-                        transition
                       "
                     >
                       {item}
@@ -457,7 +403,6 @@ export default function CreatePlanet() {
               glass-panel
               rounded-[28px]
               p-5
-              lg:h-[760px]
             "
           >
 
@@ -466,7 +411,7 @@ export default function CreatePlanet() {
               font-bold
               mb-5
             ">
-              Your Generated Planet
+              Generated Planet
             </h2>
 
             {/* PREVIEW */}
@@ -492,7 +437,7 @@ export default function CreatePlanet() {
 
             </div>
 
-            {/* INFO */}
+            {/* DETAILS */}
             <div className="
               mt-6
               space-y-4
@@ -546,7 +491,7 @@ export default function CreatePlanet() {
                   'Crystal Oceans',
                   'Floating Islands',
                   'Aurora Sky',
-                  'Energy Ring',
+                  'Purple Atmosphere',
                 ].map((trait) => (
                   <div
                     key={trait}
@@ -618,12 +563,12 @@ export default function CreatePlanet() {
       <style jsx>{`
         .glass-panel {
           background: rgba(10, 10, 20, 0.45);
-          backdrop-filter: blur(25px);
+          backdrop-filter: blur(20px);
           border: 1px solid rgba(255,255,255,0.08);
 
           box-shadow:
-            0 0 40px rgba(168,85,247,0.15),
-            inset 0 0 30px rgba(255,255,255,0.03);
+            0 0 30px rgba(168,85,247,0.15),
+            inset 0 0 20px rgba(255,255,255,0.03);
         }
 
         .stat-card {
