@@ -4,16 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 
-/* ── Planet data ── */
+/* ── Planet data (same orbital distance, evenly spaced angles) ── */
 const PLANETS = [
-  { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', img: '/planet-cryonix.png', angle: 0, distance: 38, habitability: 'Low', population: '1.2M', rarity: 'Legendary', explorer: 'AstralNomad', description: 'A mysterious ice planet…' },
-  { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', img: '/planet-solvora.png', angle: 45, distance: 44, habitability: 'Extremely Hostile', population: '850K', rarity: 'Legendary', explorer: 'EmberKnight', description: 'A legendary volcanic planet…' },
+  { id: 'cryonix', name: 'Cryonix', title: 'The Frozen Heart', color: '#4da6ff', img: '/planet-cryonix.png', angle: 0, distance: 40, habitability: 'Low', population: '1.2M', rarity: 'Legendary', explorer: 'AstralNomad', description: 'A mysterious ice planet…' },
+  { id: 'solvora', name: 'Solvora', title: 'The Forge World', color: '#ff6b3d', img: '/planet-solvora.png', angle: 45, distance: 40, habitability: 'Extremely Hostile', population: '850K', rarity: 'Legendary', explorer: 'EmberKnight', description: 'A legendary volcanic planet…' },
   { id: 'dunora', name: 'Dunora', title: 'The Timeless Dune', color: '#d9a04a', img: '/planet-dunora.png', angle: 90, distance: 40, habitability: 'Moderate', population: '620K', rarity: 'Legendary', explorer: 'SandWalker', description: 'An ancient desert world…' },
-  { id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399', img: '/planet-lumerion.png', angle: 135, distance: 36, habitability: 'Highly Stable', population: '2.1M', rarity: 'Legendary', explorer: 'StarWeaver', description: 'A breathtaking crystal world…' },
-  { id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e', img: '/planet-verdana.png', angle: 180, distance: 42, habitability: 'Extremely High', population: '3.4M', rarity: 'Legendary', explorer: 'GaiaTender', description: 'A legendary living world…' },
-  { id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff', img: '/planet-zenithor.png', angle: 225, distance: 39, habitability: 'Controlled Synthetic Zones', population: '480K', rarity: 'Legendary', explorer: 'CorePilot', description: 'A colossal artificial world…' },
-  { id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333', img: '/planet-infernox.png', angle: 270, distance: 46, habitability: 'Near Impossible', population: '210K', rarity: 'Mythic Legendary', explorer: 'PyreLord', description: 'A catastrophic fire planet…' },
-  { id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff', img: '/planet-glacieron.png', angle: 315, distance: 43, habitability: 'Extremely Harsh', population: '180K', rarity: 'Mythic Legendary', explorer: 'FrostWarden', description: 'A colossal frozen titan…' },
+  { id: 'lumerion', name: 'Lumerion', title: 'The Stardust Garden', color: '#e57399', img: '/planet-lumerion.png', angle: 135, distance: 40, habitability: 'Highly Stable', population: '2.1M', rarity: 'Legendary', explorer: 'StarWeaver', description: 'A breathtaking crystal world…' },
+  { id: 'verdana', name: 'Verdana', title: 'The Living Breath', color: '#4ee64e', img: '/planet-verdana.png', angle: 180, distance: 40, habitability: 'Extremely High', population: '3.4M', rarity: 'Legendary', explorer: 'GaiaTender', description: 'A legendary living world…' },
+  { id: 'zenithor', name: 'Zenithor', title: 'The Machine Core', color: '#b380ff', img: '/planet-zenithor.png', angle: 225, distance: 40, habitability: 'Controlled Synthetic Zones', population: '480K', rarity: 'Legendary', explorer: 'CorePilot', description: 'A colossal artificial world…' },
+  { id: 'infernox', name: 'Infernox', title: 'The Eternal Inferno', color: '#ff3333', img: '/planet-infernox.png', angle: 270, distance: 40, habitability: 'Near Impossible', population: '210K', rarity: 'Mythic Legendary', explorer: 'PyreLord', description: 'A catastrophic fire planet…' },
+  { id: 'glacieron', name: 'Glacieron', title: 'The Eternal Blizzard', color: '#80ccff', img: '/planet-glacieron.png', angle: 315, distance: 40, habitability: 'Extremely Harsh', population: '180K', rarity: 'Mythic Legendary', explorer: 'FrostWarden', description: 'A colossal frozen titan…' },
 ]
 
 export default function CosmicCompass() {
@@ -32,7 +32,7 @@ export default function CosmicCompass() {
       <SpaceBackground />
       <Navbar />
 
-      {/* ── Full‑screen galaxy background that blends naturally ── */}
+      {/* Full‑screen galaxy background that blends naturally */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -40,7 +40,6 @@ export default function CosmicCompass() {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          // The mask fades the edges so the galaxy blends into the black space
           WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0) 70%)',
           maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0) 70%)',
         }}
@@ -76,6 +75,7 @@ export default function CosmicCompass() {
           >
             {PLANETS.map((planet) => {
               const rad = (planet.angle * Math.PI) / 180
+              // distance now same for all, so radius = 40% of container width
               const centerX = 50 + (planet.distance / 50) * 40 * Math.cos(rad)
               const centerY = 50 + (planet.distance / 50) * 40 * Math.sin(rad)
               return (
@@ -175,7 +175,6 @@ export default function CosmicCompass() {
         )}
       </AnimatePresence>
 
-      {/* Dark glass utility */}
       <style jsx global>{`
         .glass-dark {
           background: rgba(0, 0, 0, 0.5);
