@@ -1,336 +1,494 @@
 'use client'
-import { useState, useContext, useEffect, useRef, useMemo, Suspense } from 'react'
+
+import { useState, useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { OrbitControls, Stars, Ring, Sphere } from '@react-three/drei'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Web3Context } from '../context/Web3Context'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { useWalletModal } from '@solana/wallet-adapter-react-ui'
-import api from '../services/api'
-import GlowButton from '../components/ui/GlowButton'
-import Navbar from '../components/layout/Navbar'
-import SpaceBackground from '../components/animations/SpaceBackground'
+import { OrbitControls, Stars } from '@react-three/drei'
+import { motion } from 'framer-motion'
 import * as THREE from 'three'
 
-/* ---------- Photorealistic Planet with Atmosphere, Ring, and Debris ---------- */
+import Navbar from '../components/layout/Navbar'
+import GlowButton from '../components/ui/GlowButton'
+
+/* ---------------- PLANET ---------------- */
+
 function PlanetScene() {
   const planetRef = useRef()
   const ringRef = useRef()
-  const debrisRef = useRef()
 
-  // Load a high‑quality alien planet texture (replace this URL with your own 2048x1024 jpg)
-  const planetTexture = useLoader(THREE.TextureLoader, 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Mars_Valles_Marineris.jpeg/1024px-Mars_Valles_Marineris.jpeg')
-  // (Optional) Load ring texture – a semi‑transparent ice‑ring
-  const ringTexture = useLoader(THREE.TextureLoader, 'https://threejs.org/examples/textures/sprites/snowflake1.png') // placeholder; you can replace with a proper ring texture
-
-  // Fresnel atmosphere shader
-  const atmosphereMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      vertexShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        void main() {
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vec3 worldNormal = normalize(mat3(modelMatrix) * normal);
-          vNormal = worldNormal;
-          vPosition = worldPos.xyz;
-          gl_Position = projectionMatrix * viewMatrix * worldPos;
-        }
-      `,
-      fragmentShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        uniform vec3 uColor;
-        uniform float uIntensity;
-        void main() {
-          vec3 viewDir = normalize(cameraPosition - vPosition);
-          float fresnel = 1.0 - abs(dot(viewDir, vNormal));
-          fresnel = pow(fresnel, 3.0);
-          gl_FragColor = vec4(uColor, fresnel * uIntensity);
-        }
-      `,
-      uniforms: {
-        uColor: { value: new THREE.Color('#a855f7') },
-        uIntensity: { value: 0.6 },
-      },
-      transparent: true,
-      depthWrite: false,
-      side: THREE.BackSide,
-    })
-  }, [])
-
-  // Debris particles (floating rocks)
-  const debrisCount = 200
-  const debrisPositions = useMemo(() => {
-    const arr = new Float32Array(debrisCount * 3)
-    for (let i = 0; i < debrisCount; i++) {
-      const angle = Math.random() * Math.PI * 2
-      const radius = 2.8 + Math.random() * 1.5
-      const height = (Math.random() - 0.5) * 1.2
-      arr[i * 3] = Math.cos(angle) * radius
-      arr[i * 3 + 1] = height
-      arr[i * 3 + 2] = Math.sin(angle) * radius
-    }
-    return arr
-  }, [])
+  const texture = useLoader(
+    THREE.TextureLoader,
+    'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2070&auto=format&fit=crop'
+  )
 
   useFrame(({ clock }) => {
-    if (planetRef.current) planetRef.current.rotation.y = clock.getElapsedTime() * 0.05
-    if (ringRef.current) {
-      ringRef.current.rotation.x = Math.PI / 2.5
-      ringRef.current.rotation.y = clock.getElapsedTime() * 0.1
+    if (planetRef.current) {
+      planetRef.current.rotation.y =
+        clock.getElapsedTime() * 0.05
     }
-    if (debrisRef.current) debrisRef.current.rotation.y = clock.getElapsedTime() * 0.15
+
+    if (ringRef.current) {
+      ringRef.current.rotation.z =
+        clock.getElapsedTime() * 0.1
+    }
   })
+
+  const particles = useMemo(() => {
+    const positions = new Float32Array(500 * 3)
+
+    for (let i = 0; i < 500; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 20
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 20
+    }
+
+    return positions
+  }, [])
 
   return (
     <group>
-      {/* Main planet with high‑res texture */}
-      <mesh ref={planetRef}>
-        <sphereGeometry args={[2, 128, 128]} />
-        <meshStandardMaterial
-          map={planetTexture}
-          roughness={0.7}
-          metalness={0.1}
-          bumpScale={0.05}
-        />
-      </mesh>
 
-      {/* Atmosphere glow (Fresnel) */}
+      {/* Planet Glow */}
       <mesh>
-        <sphereGeometry args={[2.15, 64, 64]} />
-        <primitive object={atmosphereMaterial} attach="material" />
-      </mesh>
-
-      {/* Realistic ring */}
-      <mesh ref={ringRef}>
-        <ringGeometry args={[2.3, 3.0, 128]} />
-        <meshStandardMaterial
-          map={ringTexture}
-          side={THREE.DoubleSide}
+        <sphereGeometry args={[3.9, 64, 64]} />
+        <meshBasicMaterial
+          color="#8b5cf6"
           transparent
-          opacity={0.5}
-          roughness={0.4}
-          metalness={0.0}
-          depthWrite={false}
+          opacity={0.08}
         />
       </mesh>
 
-      {/* Orbiting debris (tiny rocks) */}
-      <points ref={debrisRef}>
+      {/* Main Planet */}
+      <mesh ref={planetRef}>
+        <sphereGeometry args={[3.2, 256, 256]} />
+
+        <meshStandardMaterial
+          map={texture}
+          roughness={0.6}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Atmosphere */}
+      <mesh scale={1.08}>
+        <sphereGeometry args={[3.2, 128, 128]} />
+
+        <meshBasicMaterial
+          color="#8b5cf6"
+          transparent
+          opacity={0.15}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      {/* Energy Ring */}
+      <mesh
+        ref={ringRef}
+        rotation={[1.2, 0, 0]}
+      >
+        <torusGeometry args={[4.8, 0.08, 16, 200]} />
+
+        <meshBasicMaterial
+          color="#c084fc"
+        />
+      </mesh>
+
+      {/* Floating Particles */}
+      <points>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={debrisCount} array={debrisPositions} itemSize={3} />
+          <bufferAttribute
+            attach="attributes-position"
+            count={particles.length / 3}
+            array={particles}
+            itemSize={3}
+          />
         </bufferGeometry>
-        <pointsMaterial color="#aaaaaa" size={0.06} blending={THREE.AdditiveBlending} depthWrite={false} />
+
+        <pointsMaterial
+          size={0.03}
+          color="#ffffff"
+        />
       </points>
     </group>
   )
 }
 
-/* ---------- Main Page ---------- */
+/* ---------------- PAGE ---------------- */
+
 export default function CreatePlanet() {
-  const { account, token, sendSolPayment, sendUsdcPayment, hasPremium } = useContext(Web3Context)
-  const { connected } = useWallet()
-  const { setVisible } = useWalletModal()
-
   const [prompt, setPrompt] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [preview, setPreview] = useState(null)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [showPayment, setShowPayment] = useState(false)
-  const [freeGenerations, setFreeGenerations] = useState(3)
-  const [premium, setPremium] = useState(false)
-
-  useEffect(() => {
-    if (account) {
-      api.get('/auth/status', { headers: { 'X-User-Id': account } })
-        .then(res => {
-          setFreeGenerations(3 - res.data.free_generations_used)
-          setPremium(res.data.has_premium_generation)
-        })
-        .catch(() => {})
-    }
-  }, [account, hasPremium])
-
-  const requireConnection = () => {
-    if (!connected) { setVisible(true); return false }
-    return true
-  }
-
-  const handleGenerate = () => {
-    if (!requireConnection()) return
-    if (!prompt.trim()) { alert('Please describe your planet.'); return }
-    if (freeGenerations > 0 || premium) generatePreview()
-    else setShowPayment(true)
-  }
-
-  const generatePreview = async () => {
-    setLoading(true)
-    try {
-      const resp = await api.post('/planet/generate', { prompt }, {
-        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-      })
-      setPreview({ image_url: resp.data.image_url, style_signature: resp.data.style_signature })
-      if (resp.data.free_remaining !== undefined) setFreeGenerations(resp.data.free_remaining)
-    } catch (err) {
-      if (err.response?.data?.error === 'premium_required') setShowPayment(true)
-      else alert('Generation failed.')
-    }
-    setLoading(false)
-  }
-
-  const handleSave = async () => {
-    if (!name.trim()) { alert('Please name your planet.'); return }
-    setLoading(true)
-    try {
-      await api.post('/planet/save', {
-        image_url: preview.image_url,
-        name,
-        description,
-        style_signature: preview.style_signature,
-      }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
-      alert('Planet saved!')
-      setPreview(null); setName(''); setDescription(''); setPrompt('')
-    } catch (err) { alert('Failed to save.') }
-    setLoading(false)
-  }
-
-  const handleDiscard = () => {
-    setPreview(null); setName(''); setDescription('')
-  }
-
-  const handleUnlockPremium = async (currency) => {
-    setShowPayment(false); setLoading(true)
-    try {
-      let signature
-      if (currency === 'SOL') {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
-        const data = await res.json()
-        const solPrice = data.solana.usd
-        const solAmount = 7.99 / solPrice
-        signature = await sendSolPayment(solAmount)
-      } else if (currency === 'USDC') {
-        signature = await sendUsdcPayment(7.99)
-      }
-      if (!signature) throw new Error('Payment failed')
-      await api.post('/payment/unlock-premium', { signature, currency }, {
-        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-      })
-      setPremium(true)
-      generatePreview()
-    } catch (err) { alert('Transaction failed: ' + (err.message || err)); setLoading(false) }
-  }
 
   const variations = [
-    { img: '/planet-cryonix.png', name: 'Cryonix', rarity: 'Legendary' },
-    { img: '/planet-solvora.png', name: 'Solvora', rarity: 'Legendary' },
-    { img: '/planet-dunora.png', name: 'Dunora', rarity: 'Legendary' },
-    { img: '/planet-lumerion.png', name: 'Lumerion', rarity: 'Legendary' },
-    { img: '/planet-verdana.png', name: 'Verdana', rarity: 'Legendary' },
+    '/planet1.png',
+    '/planet2.png',
+    '/planet3.png',
+    '/planet4.png',
+    '/planet5.png',
   ]
 
   return (
-    <div className="relative h-screen w-screen bg-black overflow-hidden flex flex-col">
-      <SpaceBackground />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-purple-900/10 to-transparent pointer-events-none" />
+    <div className="relative min-h-screen bg-black overflow-hidden text-white">
+
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_35%,#000_100%)]" />
+
+      {/* Extra Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-purple-500/20 blur-[160px]" />
+
+      {/* Navbar */}
       <Navbar />
 
-      <div className="flex-1 flex flex-col lg:flex-row pt-16 px-4 lg:px-8 pb-4 gap-4">
-        {/* Center 3D Planet */}
-        <div className="flex-1 h-[45vh] lg:h-full relative order-1 lg:order-2">
-          <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 2]}>
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[5, 3, 5]} intensity={1.2} />
-            <Stars radius={30} depth={40} count={2000} factor={5} saturation={0.2} fade speed={0.8} />
-            <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} minDistance={3} maxDistance={12} />
-            <Suspense fallback={null}>
-              <PlanetScene />
-            </Suspense>
-          </Canvas>
-        </div>
+      {/* Main Layout */}
+      <div className="relative z-10 pt-24 px-6 lg:px-10 pb-10">
 
-        {/* Right Floating Panel */}
-        <div className="lg:w-[340px] flex-shrink-0 order-2 lg:order-3 overflow-y-auto">
+        <div className="grid lg:grid-cols-[350px_1fr_340px] gap-6 items-center">
+
+          {/* LEFT PANEL */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass p-4 rounded-2xl border border-white/10 space-y-4 shadow-[0_0_30px_rgba(168,85,247,0.2)]"
+            className="glass-panel p-6 rounded-[32px] h-[760px]"
           >
-            {!preview ? (
-              <>
-                <h2 className="text-xl font-bold text-gradient">Create a Planet</h2>
-                <div className="text-sm text-gray-400">
-                  {connected ? (
-                    <>Free generations: <span className="text-purple-300">{freeGenerations}</span>{premium && <span className="ml-1 text-green-300">(Premium ♾️)</span>}</>
-                  ) : 'Connect wallet to create.'}
-                </div>
+
+            <h1 className="text-5xl font-black leading-none">
+              AI-DRIVEN
+            </h1>
+
+            <h2 className="text-5xl font-black text-purple-400 leading-none mb-4">
+              PLANET GENESIS
+            </h2>
+
+            <p className="text-gray-400 mb-8">
+              Describe it. Generate it. Own it.
+            </p>
+
+            <div className="space-y-5">
+
+              <div>
+                <p className="text-sm mb-2 text-gray-300">
+                  Describe Your Planet
+                </p>
+
                 <textarea
                   value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  placeholder="Describe your planet..."
-                  className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  onChange={(e) =>
+                    setPrompt(e.target.value)
+                  }
+                  placeholder="A planet with crystal oceans, floating islands, aurora skies..."
+                  className="
+                    w-full
+                    h-40
+                    rounded-2xl
+                    bg-white/5
+                    border
+                    border-white/10
+                    p-4
+                    text-sm
+                    outline-none
+                    resize-none
+                    backdrop-blur-xl
+                  "
                 />
-                <GlowButton onClick={handleGenerate} disabled={loading} className="w-full">
-                  {loading ? 'Generating...' : 'Generate AI Planet'}
-                </GlowButton>
-              </>
-            ) : (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <img src={preview.image_url} className="w-full h-40 object-cover rounded-xl border border-white/10 shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
-                <input
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Planet name..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Optional description..."
-                  className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                />
-                <div className="flex gap-2">
-                  <GlowButton onClick={handleSave} disabled={loading} className="flex-1">Save</GlowButton>
-                  <button onClick={handleDiscard} className="flex-1 py-2 rounded-full bg-white/5 border border-white/10 text-gray-300 text-sm hover:bg-white/10 transition">Discard</button>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Bottom Carousel */}
-      <div className="hidden lg:flex gap-3 px-8 pb-4 overflow-x-auto">
-        <h3 className="text-sm text-gray-400 self-center">Variations</h3>
-        {variations.map((v, i) => (
-          <div key={i} className="flex-shrink-0 glass p-2 rounded-xl border border-white/10 text-center w-24">
-            <img src={v.img} className="w-12 h-12 mx-auto rounded-full object-cover" />
-            <p className="text-[10px] text-white mt-1">{v.name}</p>
-            <p className="text-[8px] text-purple-300">{v.rarity}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Payment Modal */}
-      <AnimatePresence>
-        {showPayment && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowPayment(false)}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}
-              className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center border border-white/10"
-              onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-bold mb-2">Unlock Advanced AI Generation</h3>
-              <p className="text-gray-300 mb-4">One‑time $7.99 USD payment for unlimited planets forever.</p>
-              <div className="flex justify-center gap-4 mt-6">
-                <GlowButton onClick={() => handleUnlockPremium('SOL')}>Pay with SOL</GlowButton>
-                <GlowButton onClick={() => handleUnlockPremium('USDC')} className="!bg-blue-500">Pay with USDC</GlowButton>
               </div>
-            </motion.div>
+
+              <div>
+                <p className="text-sm mb-3 text-gray-300">
+                  Style
+                </p>
+
+                <div className="flex gap-3 flex-wrap">
+
+                  {[
+                    'Cosmic',
+                    'Fantasy',
+                    'Sci-Fi',
+                    'Realistic',
+                  ].map((item) => (
+                    <button
+                      key={item}
+                      className="
+                        px-4
+                        py-2
+                        rounded-full
+                        bg-white/5
+                        border
+                        border-white/10
+                        hover:border-purple-500
+                        transition
+                        text-sm
+                      "
+                    >
+                      {item}
+                    </button>
+                  ))}
+
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+
+                <div className="stat-card">
+                  <p className="text-gray-400 text-xs">
+                    Type
+                  </p>
+
+                  <h3>Oceanic</h3>
+                </div>
+
+                <div className="stat-card">
+                  <p className="text-gray-400 text-xs">
+                    Energy
+                  </p>
+
+                  <h3>High</h3>
+                </div>
+
+                <div className="stat-card">
+                  <p className="text-gray-400 text-xs">
+                    Rarity
+                  </p>
+
+                  <h3>Epic</h3>
+                </div>
+
+                <div className="stat-card">
+                  <p className="text-gray-400 text-xs">
+                    Habitability
+                  </p>
+
+                  <h3>78%</h3>
+                </div>
+
+              </div>
+
+              <GlowButton className="w-full mt-6">
+                Generate Planet
+              </GlowButton>
+
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {/* CENTER PLANET */}
+          <div className="relative h-[820px] flex items-center justify-center">
+
+            {/* Planet Glow */}
+            <div className="absolute w-[750px] h-[750px] rounded-full bg-purple-500/20 blur-[120px]" />
+
+            <Canvas camera={{ position: [0, 0, 9], fov: 45 }}>
+
+              <fog
+                attach="fog"
+                args={['#070114', 10, 25]}
+              />
+
+              <ambientLight intensity={0.4} />
+
+              <pointLight
+                position={[5, 5, 5]}
+                intensity={3}
+                color="#8b5cf6"
+              />
+
+              <pointLight
+                position={[-5, -5, -5]}
+                intensity={2}
+                color="#06b6d4"
+              />
+
+              <Stars
+                radius={100}
+                depth={50}
+                count={4000}
+                factor={4}
+                fade
+              />
+
+              <OrbitControls
+                autoRotate
+                autoRotateSpeed={0.3}
+                enableZoom={false}
+              />
+
+              <Suspense fallback={null}>
+                <PlanetScene />
+              </Suspense>
+
+            </Canvas>
+
+            {/* Bottom Controls */}
+            <div className="
+              absolute
+              bottom-10
+              flex
+              items-center
+              gap-4
+              glass-panel
+              px-6
+              py-4
+              rounded-full
+            ">
+
+              <button>◀</button>
+
+              <button>360°</button>
+
+              <button>▶</button>
+
+            </div>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-panel p-6 rounded-[32px] h-[760px]"
+          >
+
+            <h2 className="text-2xl font-bold mb-5">
+              Your Generated Planet
+            </h2>
+
+            <img
+              src="/planet-preview.png"
+              className="
+                w-full
+                h-56
+                object-cover
+                rounded-2xl
+                border
+                border-white/10
+                mb-6
+              "
+            />
+
+            <div className="space-y-4">
+
+              <div className="info-row">
+                <span>Name</span>
+                <span>Asteria Prime</span>
+              </div>
+
+              <div className="info-row">
+                <span>Type</span>
+                <span>Oceanic</span>
+              </div>
+
+              <div className="info-row">
+                <span>Rarity</span>
+                <span className="text-purple-400">
+                  Epic
+                </span>
+              </div>
+
+              <div className="info-row">
+                <span>Habitability</span>
+                <span className="text-green-400">
+                  78%
+                </span>
+              </div>
+
+            </div>
+
+            <div className="mt-8">
+
+              <h3 className="mb-4 font-semibold">
+                Special Traits
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3">
+
+                {[
+                  'Crystal Oceans',
+                  'Floating Islands',
+                  'Aurora Sky',
+                  'Energy Ring',
+                ].map((trait) => (
+                  <div
+                    key={trait}
+                    className="
+                      bg-white/5
+                      border
+                      border-white/10
+                      rounded-2xl
+                      p-3
+                      text-sm
+                    "
+                  >
+                    {trait}
+                  </div>
+                ))}
+
+              </div>
+
+              <GlowButton className="w-full mt-8">
+                Mint Planet
+              </GlowButton>
+
+            </div>
+          </motion.div>
+
+        </div>
+
+        {/* Bottom Carousel */}
+        <div className="flex gap-4 mt-8 overflow-x-auto pb-4">
+
+          {variations.map((planet, i) => (
+            <div
+              key={i}
+              className="
+                min-w-[140px]
+                glass-panel
+                p-2
+                rounded-2xl
+                border
+                border-white/10
+              "
+            >
+
+              <img
+                src={planet}
+                className="
+                  w-full
+                  h-28
+                  object-cover
+                  rounded-xl
+                "
+              />
+
+            </div>
+          ))}
+
+        </div>
+
+      </div>
+
+      {/* Styles */}
+      <style jsx>{`
+        .glass-panel {
+          background: rgba(10, 10, 20, 0.45);
+          backdrop-filter: blur(25px);
+          border: 1px solid rgba(255,255,255,0.08);
+
+          box-shadow:
+            0 0 40px rgba(168,85,247,0.15),
+            inset 0 0 30px rgba(255,255,255,0.03);
+        }
+
+        .stat-card {
+          padding: 14px;
+          border-radius: 20px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          color: white;
+        }
+      `}</style>
+
     </div>
   )
 }
