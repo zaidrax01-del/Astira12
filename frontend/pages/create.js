@@ -15,30 +15,34 @@ function PlanetScene() {
   const planetRef = useRef()
   const ringRef = useRef()
 
+  // USE YOUR GENERATED TEXTURE
   const texture = useLoader(
     THREE.TextureLoader,
-    'https://threejs.org/examples/textures/planets/jupiter.jpg'
+    '/planet-texture.png'
   )
 
   useFrame(({ clock }) => {
     if (planetRef.current) {
       planetRef.current.rotation.y =
-        clock.getElapsedTime() * 0.03
+        clock.getElapsedTime() * 0.02
     }
 
     if (ringRef.current) {
       ringRef.current.rotation.z =
-        clock.getElapsedTime() * 0.08
+        clock.getElapsedTime() * 0.05
     }
   })
 
   const particles = useMemo(() => {
-    const positions = new Float32Array(1000 * 3)
+    const positions = new Float32Array(250 * 3)
 
-    for (let i = 0; i < 1000; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 20
+    for (let i = 0; i < 250; i++) {
+      positions[i * 3] =
+        (Math.random() - 0.5) * 20
+
       positions[i * 3 + 1] =
         (Math.random() - 0.5) * 20
+
       positions[i * 3 + 2] =
         (Math.random() - 0.5) * 20
     }
@@ -49,51 +53,53 @@ function PlanetScene() {
   return (
     <group>
 
-      {/* Glow */}
+      {/* PLANET GLOW */}
       <mesh>
         <sphereGeometry args={[2.8, 64, 64]} />
 
         <meshBasicMaterial
-          color="#8b5cf6"
+          color="#9333ea"
           transparent
           opacity={0.15}
         />
       </mesh>
 
-      {/* Planet */}
+      {/* MAIN PLANET */}
       <mesh ref={planetRef}>
-        <sphereGeometry args={[2.2, 256, 256]} />
+        <sphereGeometry args={[2.2, 64, 64]} />
 
         <meshStandardMaterial
           map={texture}
-          roughness={0.7}
-          metalness={0.1}
+          roughness={0.8}
+          metalness={0.05}
         />
       </mesh>
 
-      {/* Atmosphere */}
-      <mesh scale={1.08}>
-        <sphereGeometry args={[2.2, 128, 128]} />
+      {/* ATMOSPHERE */}
+      <mesh scale={1.06}>
+        <sphereGeometry args={[2.2, 64, 64]} />
 
         <meshBasicMaterial
           color="#c084fc"
           transparent
-          opacity={0.12}
+          opacity={0.1}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* Ring */}
+      {/* ENERGY RING */}
       <mesh
         ref={ringRef}
         rotation={[1.1, 0, 0]}
       >
         <torusGeometry args={[3.4, 0.04, 16, 200]} />
 
-        <meshBasicMaterial color="#d8b4fe" />
+        <meshBasicMaterial
+          color="#d8b4fe"
+        />
       </mesh>
 
-      {/* Particles */}
+      {/* PARTICLES */}
       <points>
         <bufferGeometry>
           <bufferAttribute
@@ -128,19 +134,30 @@ export default function CreatePlanet() {
   ]
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden text-white">
+    <div className="
+      relative
+      min-h-screen
+      bg-black
+      overflow-hidden
+      text-white
+    ">
 
       {/* BACKGROUND */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_40%,#000_100%)]" />
-
       <div className="
         absolute
-        top-1/3
+        inset-0
+        bg-[radial-gradient(circle_at_top,#3b0764_0%,#070114_45%,#000_100%)]
+      " />
+
+      {/* PURPLE GLOW */}
+      <div className="
+        absolute
+        top-1/4
         left-1/2
         -translate-x-1/2
         w-[500px]
-        lg:w-[900px]
         h-[500px]
+        lg:w-[900px]
         lg:h-[900px]
         rounded-full
         bg-purple-500/20
@@ -166,15 +183,13 @@ export default function CreatePlanet() {
           lg:grid
           lg:grid-cols-[340px_1fr_340px]
           gap-6
-          items-start
         ">
 
-          {/* MOBILE PLANET FIRST */}
+          {/* PLANET SECTION */}
           <div className="
             order-1
             lg:order-2
             relative
-            w-full
             h-[320px]
             lg:h-[820px]
             flex
@@ -182,7 +197,7 @@ export default function CreatePlanet() {
             justify-center
           ">
 
-            {/* Glow */}
+            {/* PLANET OUTER GLOW */}
             <div className="
               absolute
               w-[320px]
@@ -201,37 +216,31 @@ export default function CreatePlanet() {
               }}
             >
 
-              <fog
-                attach="fog"
-                args={['#070114', 8, 20]}
-              />
-
-              <ambientLight intensity={0.5} />
+              <ambientLight intensity={0.6} />
 
               <pointLight
                 position={[5, 5, 5]}
-                intensity={2.5}
+                intensity={2}
                 color="#8b5cf6"
               />
 
               <pointLight
                 position={[-5, -5, -5]}
-                intensity={2}
+                intensity={1.5}
                 color="#06b6d4"
               />
 
               <Stars
                 radius={100}
                 depth={50}
-                count={3000}
+                count={2000}
                 factor={4}
                 fade
               />
 
               <OrbitControls
-                autoRotate
-                autoRotateSpeed={0.25}
                 enableZoom={false}
+                enablePan={false}
               />
 
               <Suspense fallback={null}>
@@ -240,7 +249,7 @@ export default function CreatePlanet() {
 
             </Canvas>
 
-            {/* CONTROLS */}
+            {/* CONTROL BUTTON */}
             <div className="
               absolute
               bottom-2
@@ -263,6 +272,7 @@ export default function CreatePlanet() {
               <button>▶</button>
 
             </div>
+
           </div>
 
           {/* LEFT PANEL */}
@@ -272,7 +282,6 @@ export default function CreatePlanet() {
             className="
               order-2
               lg:order-1
-              w-full
               glass-panel
               rounded-[28px]
               p-5
@@ -326,7 +335,7 @@ export default function CreatePlanet() {
                   onChange={(e) =>
                     setPrompt(e.target.value)
                   }
-                  placeholder="Crystal oceans, floating islands, purple atmosphere..."
+                  placeholder="Crystal oceans, floating islands..."
                   className="
                     w-full
                     h-32
@@ -436,6 +445,7 @@ export default function CreatePlanet() {
               </GlowButton>
 
             </div>
+
           </motion.div>
 
           {/* RIGHT PANEL */}
@@ -444,7 +454,6 @@ export default function CreatePlanet() {
             animate={{ opacity: 1, x: 0 }}
             className="
               order-3
-              w-full
               glass-panel
               rounded-[28px]
               p-5
@@ -460,7 +469,7 @@ export default function CreatePlanet() {
               Your Generated Planet
             </h2>
 
-            {/* FIXED IMAGE */}
+            {/* PREVIEW */}
             <div className="
               w-full
               h-52
@@ -472,7 +481,7 @@ export default function CreatePlanet() {
             ">
 
               <img
-                src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1200&auto=format&fit=crop"
+                src="/planet-texture.png"
                 alt="planet"
                 className="
                   w-full
