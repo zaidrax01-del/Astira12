@@ -1,6 +1,6 @@
 'use client'
 import { useState, useContext, useEffect, useRef, useMemo } from 'react'
-import { Canvas, useFrame, useLoader } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Stars, Ring } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Web3Context } from '../context/Web3Context'
@@ -12,90 +12,84 @@ import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 import * as THREE from 'three'
 
-// ---------- 3D Planet Component ----------
-function HolographicPlanet({ textureUrl }) {
+/* ---------- 3D Holographic Planet ---------- */
+function HolographicPlanet() {
   const planetRef = useRef()
   const ringRef = useRef()
-  const particleGroupRef = useRef()
+  const particlesRef = useRef()
+
+  // Procedural planet texture (gradient + stars)
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 1024
     canvas.height = 512
     const ctx = canvas.getContext('2d')
-    const gradient = ctx.createLinearGradient(0, 0, 1024, 512)
-    gradient.addColorStop(0, '#ff6b3d')
-    gradient.addColorStop(0.3, '#d9a04a')
-    gradient.addColorStop(0.6, '#4da6ff')
-    gradient.addColorStop(1, '#1e1b4b')
-    ctx.fillStyle = gradient
+    const grad = ctx.createLinearGradient(0, 0, 1024, 512)
+    grad.addColorStop(0, '#a855f7')
+    grad.addColorStop(0.3, '#ec4899')
+    grad.addColorStop(0.6, '#3b82f6')
+    grad.addColorStop(1, '#0f172a')
+    ctx.fillStyle = grad
     ctx.fillRect(0, 0, 1024, 512)
-    // add some noise/stars
-    for (let i = 0; i < 2000; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5})`
+    for (let i = 0; i < 3000; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.4})`
       ctx.fillRect(Math.random() * 1024, Math.random() * 512, 2, 2)
     }
     return new THREE.CanvasTexture(canvas)
   }, [])
 
-  useFrame(({ clock }) => {
-    if (planetRef.current) {
-      planetRef.current.rotation.y = clock.getElapsedTime() * 0.1
+  // Orbiting particles
+  const particleCount = 400
+  const particlePositions = useMemo(() => {
+    const arr = new Float32Array(particleCount * 3)
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2
+      const radius = 2.3 + Math.random() * 0.4
+      arr[i * 3] = Math.cos(angle) * radius
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 0.6
+      arr[i * 3 + 2] = Math.sin(angle) * radius
     }
+    return arr
+  }, [])
+
+  useFrame(({ clock }) => {
+    if (planetRef.current) planetRef.current.rotation.y = clock.getElapsedTime() * 0.08
     if (ringRef.current) {
       ringRef.current.rotation.x = Math.PI / 3
       ringRef.current.rotation.y = clock.getElapsedTime() * 0.2
     }
-    if (particleGroupRef.current) {
-      particleGroupRef.current.rotation.y = clock.getElapsedTime() * 0.15
-    }
+    if (particlesRef.current) particlesRef.current.rotation.y = clock.getElapsedTime() * 0.12
   })
-
-  // Orbiting particles
-  const particles = useMemo(() => {
-    const count = 300
-    const positions = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2
-      const radius = 2.2 + Math.random() * 0.3
-      positions[i * 3] = Math.cos(angle) * radius
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 0.4
-      positions[i * 3 + 2] = Math.sin(angle) * radius
-    }
-    return positions
-  }, [])
 
   return (
     <group>
-      {/* Planet sphere */}
+      {/* Planet */}
       <mesh ref={planetRef}>
         <sphereGeometry args={[2, 64, 64]} />
-        <meshStandardMaterial map={texture} roughness={0.4} metalness={0.1} />
+        <meshStandardMaterial map={texture} roughness={0.4} metalness={0.2} emissive="#1e1b4b" emissiveIntensity={0.3} />
       </mesh>
-
       {/* Glowing atmosphere */}
       <mesh>
-        <sphereGeometry args={[2.15, 64, 64]} />
-        <meshBasicMaterial color="#a855f7" transparent opacity={0.1} side={THREE.BackSide} />
+        <sphereGeometry args={[2.2, 64, 64]} />
+        <meshBasicMaterial color="#a855f7" transparent opacity={0.08} side={THREE.BackSide} />
       </mesh>
-
       {/* Energy ring */}
       <mesh ref={ringRef}>
-        <ringGeometry args={[2.3, 2.6, 64]} />
-        <meshBasicMaterial color="#c084fc" side={THREE.DoubleSide} transparent opacity={0.3} />
+        <ringGeometry args={[2.4, 2.7, 64]} />
+        <meshBasicMaterial color="#c084fc" side={THREE.DoubleSide} transparent opacity={0.35} />
       </mesh>
-
       {/* Orbiting particles */}
-      <points ref={particleGroupRef}>
+      <points ref={particlesRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={300} array={particles} itemSize={3} />
+          <bufferAttribute attach="attributes-position" count={particleCount} array={particlePositions} itemSize={3} />
         </bufferGeometry>
-        <pointsMaterial color="#ffffff" size={0.05} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <pointsMaterial color="#e0c0ff" size={0.04} blending={THREE.AdditiveBlending} depthWrite={false} />
       </points>
     </group>
   )
 }
 
-// ---------- Main Page ----------
+/* ---------- Main Page ---------- */
 export default function CreatePlanet() {
   const { account, token, sendSolPayment, sendUsdcPayment, hasPremium } = useContext(Web3Context)
   const { connected } = useWallet()
@@ -190,7 +184,7 @@ export default function CreatePlanet() {
     } catch (err) { alert('Transaction failed: ' + (err.message || err)); setLoading(false) }
   }
 
-  // Sample planet variations for carousel (placeholder)
+  // Sample planet variations for carousel
   const variations = [
     { img: '/planet-cryonix.png', name: 'Cryonix', rarity: 'Legendary' },
     { img: '/planet-solvora.png', name: 'Solvora', rarity: 'Legendary' },
@@ -201,26 +195,33 @@ export default function CreatePlanet() {
 
   return (
     <div className="relative h-screen w-screen bg-black overflow-hidden flex flex-col">
+      {/* Deep space + nebula background */}
       <SpaceBackground />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-purple-900/10 to-transparent pointer-events-none" />
+
       <Navbar />
 
       <div className="flex-1 flex flex-col lg:flex-row pt-16 px-4 lg:px-8 pb-4 gap-4">
-        {/* ── Center 3D Planet ── */}
-        <div className="flex-1 h-[50vh] lg:h-full relative order-1 lg:order-2">
+        {/* ── Center 3D Planet (full‑screen canvas) ── */}
+        <div className="flex-1 h-[45vh] lg:h-full relative order-1 lg:order-2">
           <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} intensity={1} />
-            <Stars radius={20} depth={30} count={1000} factor={4} saturation={0} fade speed={1} />
+            <ambientLight intensity={0.6} />
+            <pointLight position={[10, 10, 10]} intensity={1.2} />
+            <Stars radius={30} depth={40} count={2000} factor={5} saturation={0.2} fade speed={0.8} />
             <OrbitControls enableDamping dampingFactor={0.1} enableZoom={true} minDistance={3} maxDistance={12} />
             <HolographicPlanet />
           </Canvas>
-          {/* Central glow overlay */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-purple-500/10 to-transparent" />
+          {/* Overlay glow */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-purple-500/5 via-transparent to-transparent" />
         </div>
 
-        {/* ── Right Floating Info Panel ── */}
+        {/* ── Right Floating Panel ── */}
         <div className="lg:w-[340px] flex-shrink-0 order-2 lg:order-3 overflow-y-auto">
-          <div className="glass p-4 rounded-2xl border border-white/10 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass p-4 rounded-2xl border border-white/10 space-y-4 shadow-[0_0_30px_rgba(168,85,247,0.2)]"
+          >
             {!preview ? (
               <>
                 <h2 className="text-xl font-bold text-gradient">Create a Planet</h2>
@@ -241,7 +242,7 @@ export default function CreatePlanet() {
               </>
             ) : (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <img src={preview.image_url} className="w-full h-40 object-cover rounded-xl border border-white/10" />
+                <img src={preview.image_url} className="w-full h-40 object-cover rounded-xl border border-white/10 shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
                 <input
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -260,11 +261,11 @@ export default function CreatePlanet() {
                 </div>
               </motion.div>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* ── Bottom Carousel (desktop only) ── */}
+      {/* ── Bottom Carousel ── */}
       <div className="hidden lg:flex gap-3 px-8 pb-4 overflow-x-auto">
         <h3 className="text-sm text-gray-400 self-center">Variations</h3>
         {variations.map((v, i) => (
