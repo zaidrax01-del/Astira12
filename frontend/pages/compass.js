@@ -7,381 +7,289 @@ const planets = [
   {
     id: 1,
     name: 'Cryonix',
-    username: '@IceWalker',
     image: '/planet-cryonix.png',
     color: '#3b82f6',
-    x: '18%',
-    y: '30%',
-    size: 90,
-    ring: true,
+    x: '22%',
+    y: '34%',
   },
   {
     id: 2,
     name: 'Lumerion',
-    username: '@CrystalLover',
     image: '/planet-lumerion.png',
-    color: '#a855f7',
+    color: '#9333ea',
     x: '50%',
-    y: '18%',
-    size: 85,
-    ring: true,
+    y: '22%',
   },
   {
     id: 3,
     name: 'Verdana',
-    username: '@GreenThumb',
     image: '/planet-verdana.png',
     color: '#22c55e',
-    x: '72%',
-    y: '32%',
-    size: 95,
-    ring: true,
+    x: '76%',
+    y: '34%',
   },
   {
     id: 4,
     name: 'Zenithor',
-    username: '@MechaMind',
     image: '/planet-zenithor.png',
     color: '#f97316',
-    x: '82%',
-    y: '54%',
-    size: 82,
-    ring: false,
+    x: '84%',
+    y: '56%',
   },
   {
     id: 5,
     name: 'Auroria',
-    username: '@SkyDreamer',
     image: '/planet-auroria.png',
     color: '#06b6d4',
     x: '70%',
-    y: '76%',
-    size: 88,
-    ring: true,
+    y: '78%',
   },
   {
     id: 6,
     name: 'Nexoria',
-    username: '@VoidSeeker',
     image: '/planet-nexoria.png',
-    color: '#9333ea',
+    color: '#a855f7',
     x: '50%',
     y: '88%',
-    size: 92,
-    ring: false,
   },
   {
     id: 7,
     name: 'Dunora',
-    username: '@DuneRider',
     image: '/planet-dunora.png',
     color: '#c08457',
     x: '28%',
     y: '78%',
-    size: 90,
-    ring: true,
   },
   {
     id: 8,
     name: 'Solvora',
-    username: '@Flameborn',
     image: '/planet-solvora.png',
     color: '#ef4444',
-    x: '8%',
+    x: '10%',
     y: '58%',
-    size: 86,
-    ring: true,
   },
 ]
 
 export default function GalaxyMap() {
-  const [selectedPlanet, setSelectedPlanet] = useState(planets[2])
+  const [selectedPlanet, setSelectedPlanet] = useState(planets[0])
 
   return (
-    <div className="relative w-screen min-h-[100svh] overflow-hidden bg-black text-white">
-      {/* STAR BACKGROUND */}
-      <div className="absolute inset-0 bg-[url('/stars-bg.jpg')] bg-cover bg-center opacity-70" />
+    <div className="relative w-screen h-[100svh] overflow-hidden bg-black text-white">
+      {/* STARS BACKGROUND */}
+      <div
+        className="absolute inset-0 opacity-70"
+        style={{
+          backgroundImage: "url('/stars-bg.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
 
       {/* DARK OVERLAY */}
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* GALAXY */}
+      {/* MAIN GALAXY */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-        {/* OUTER GLOW */}
-        <div className="absolute w-[90vw] h-[90vw] max-w-[900px] max-h-[900px] rounded-full bg-purple-700/20 blur-[120px]" />
+        {/* BIG PURPLE GLOW */}
+        <div className="absolute w-[90vw] h-[90vw] rounded-full bg-purple-700/30 blur-[120px]" />
 
-        {/* GALAXY IMAGE */}
+        {/* ROTATING GALAXY */}
         <motion.img
-          src="/galaxy.png"
+          src="/galaxy.jpg"
           alt="Galaxy"
           animate={{ rotate: 360 }}
           transition={{
-            duration: 300,
+            duration: 260,
             repeat: Infinity,
             ease: 'linear',
           }}
-          className="
-            relative
-            w-[95vw]
-            h-[95vw]
-            max-w-[950px]
-            max-h-[950px]
-            object-contain
-            opacity-90
-            pointer-events-none
-            select-none
-          "
+          className="absolute w-[95vw] h-[95vw] object-cover opacity-100"
           style={{
             filter:
-              'drop-shadow(0 0 80px rgba(168,85,247,0.7))',
+              'drop-shadow(0 0 90px rgba(168,85,247,0.8))',
           }}
         />
 
-        {/* CENTER LIGHT */}
-        <div className="absolute w-32 h-32 rounded-full bg-white blur-[60px] opacity-70" />
+        {/* CENTER WHITE GLOW */}
+        <div className="absolute w-28 h-28 rounded-full bg-white blur-[60px] opacity-80" />
       </div>
 
-      {/* ORBITS */}
-      <div className="absolute inset-0 pointer-events-none">
-        <svg className="w-full h-full opacity-30">
-          <circle
-            cx="50%"
-            cy="50%"
-            r="180"
-            stroke="rgba(0,255,255,0.3)"
-            strokeDasharray="8 10"
-            fill="none"
-          />
-
-          <circle
-            cx="50%"
-            cy="50%"
-            r="280"
-            stroke="rgba(168,85,247,0.25)"
-            strokeDasharray="8 12"
-            fill="none"
-          />
-        </svg>
-      </div>
-
-      {/* SEARCH BAR */}
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 z-50 flex gap-3 w-[95%] md:w-auto">
-        <div className="flex-1 md:w-[520px] h-12 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl flex items-center px-4">
+      {/* SEARCH */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 w-[92%]">
+        <div className="flex-1 h-11 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl flex items-center px-4">
           <span className="text-white/40">🔍</span>
 
           <input
             placeholder="Search planets..."
-            className="bg-transparent outline-none w-full ml-3 text-sm text-white placeholder:text-white/30"
+            className="bg-transparent outline-none w-full ml-3 text-sm placeholder:text-white/30"
           />
         </div>
 
-        <button className="h-12 px-4 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl text-sm">
-          All Sectors ▾
+        <button className="px-4 rounded-full bg-black/40 border border-white/10 text-xs">
+          All ▾
         </button>
       </div>
 
       {/* LEFT PANELS */}
-      <div className="absolute left-3 top-24 z-40 flex flex-col gap-4 scale-[0.8] md:scale-100 origin-top-left">
-        <div className="w-[220px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-4">
-          <h3 className="text-xs tracking-[0.2em] text-white/70 mb-4">
+      <div className="absolute left-2 top-20 z-40 scale-[0.78] origin-top-left">
+        <div className="w-[190px] rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-4 mb-3">
+          <h3 className="text-[10px] tracking-[0.25em] text-white/70 mb-3">
             LIVE EVENTS
           </h3>
 
-          <div className="space-y-3 text-sm">
+          <div className="space-y-3 text-xs">
             <div>
               <p>Cosmic Storm</p>
-              <p className="text-purple-400 text-xs">
+              <p className="text-purple-400">
                 Double evolution chance
               </p>
             </div>
 
             <div>
               <p>Star Fair</p>
-              <p className="text-cyan-400 text-xs">
+              <p className="text-cyan-400">
                 Visit the Star Fair
               </p>
             </div>
 
             <div>
               <p>Planet Party</p>
-              <p className="text-green-400 text-xs">
+              <p className="text-green-400">
                 Live now
               </p>
             </div>
           </div>
         </div>
 
-        <div className="w-[220px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-4">
-          <h3 className="text-xs tracking-[0.2em] text-white/70 mb-4">
-            STAR MAP LEGEND
+        <div className="w-[190px] rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-4">
+          <h3 className="text-[10px] tracking-[0.25em] text-white/70 mb-3">
+            STAR MAP
           </h3>
 
-          <div className="space-y-2 text-xs text-white/60">
+          <div className="space-y-2 text-[10px] text-white/60">
             <div>Featured Planet</div>
-            <div>Original Planet</div>
-            <div>Player Planet</div>
-            <div>Event Planet</div>
             <div>Trade Hub</div>
+            <div>Jump Gate</div>
           </div>
         </div>
       </div>
 
       {/* RIGHT INFO PANEL */}
-      <div className="absolute right-3 top-20 z-40 w-[180px] md:w-[320px] rounded-3xl border border-cyan-400/20 bg-black/50 backdrop-blur-2xl p-3 md:p-5">
+      <div className="absolute right-2 top-20 z-40 w-[175px] rounded-3xl bg-black/50 backdrop-blur-2xl border border-white/10 p-3">
         <img
           src={selectedPlanet.image}
-          className="w-full h-[120px] md:h-[220px] rounded-2xl object-cover"
+          className="w-full h-[110px] rounded-2xl object-cover"
         />
 
-        <div className="mt-3">
-          <h2 className="text-lg md:text-3xl font-semibold">
-            {selectedPlanet.name}
-          </h2>
+        <h2 className="mt-3 text-lg font-semibold">
+          {selectedPlanet.name}
+        </h2>
 
-          <p className="text-white/50 text-xs md:text-sm">
-            {selectedPlanet.username}
-          </p>
-
-          <div className="grid grid-cols-3 gap-2 mt-4 text-[10px] md:text-sm">
-            <div>
-              <p className="text-white/40">
-                Habitability
-              </p>
-
-              <p className="text-green-400">
-                High
-              </p>
-            </div>
-
-            <div>
-              <p className="text-white/40">
-                Population
-              </p>
-
-              <p>210</p>
-            </div>
-
-            <div>
-              <p className="text-white/40">
-                Rarity
-              </p>
-
-              <p className="text-pink-400">
-                Legendary
-              </p>
-            </div>
+        <div className="grid grid-cols-3 gap-1 mt-3 text-[9px]">
+          <div>
+            <p className="text-white/40">Hab</p>
+            <p className="text-green-400">High</p>
           </div>
 
-          <button className="w-full mt-4 h-10 md:h-14 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-sm md:text-lg font-semibold">
-            Visit Planet
-          </button>
+          <div>
+            <p className="text-white/40">Pop</p>
+            <p>210</p>
+          </div>
+
+          <div>
+            <p className="text-white/40">Rare</p>
+            <p className="text-pink-400">L</p>
+          </div>
         </div>
+
+        <button className="w-full mt-4 h-9 rounded-xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-xs font-semibold">
+          Visit Planet
+        </button>
       </div>
 
-      {/* CORE LABEL */}
+      {/* CENTER CORE */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 text-center">
-        <div className="text-4xl md:text-7xl text-white">
+        <div className="text-5xl text-white drop-shadow-[0_0_30px_white]">
           ✦
         </div>
 
-        <h2 className="text-sm md:text-2xl font-bold tracking-[0.3em]">
+        <h2 className="text-sm tracking-[0.35em] font-bold">
           THE CORE
         </h2>
 
-        <p className="text-white/50 mt-1 text-xs md:text-base">
+        <p className="text-[10px] text-white/50">
           Astira Central Hub
         </p>
       </div>
 
       {/* PLANETS */}
-      {planets.map((planet) => (
+      {planets.map((planet, index) => (
         <motion.div
           key={planet.id}
-          initial={{ y: 0 }}
-          animate={{ y: [0, -12, 0] }}
+          animate={{
+            y: [0, -10, 0],
+          }}
           transition={{
-            duration: 4 + planet.id,
+            duration: 4 + index,
             repeat: Infinity,
             ease: 'easeInOut',
           }}
           onClick={() => setSelectedPlanet(planet)}
-          className="absolute z-20 cursor-pointer group"
+          className="absolute z-20 cursor-pointer"
           style={{
             left: planet.x,
             top: planet.y,
+            transform: 'translate(-50%, -50%)',
           }}
         >
+          {/* GLOW */}
           <div
-            className="relative rounded-full"
+            className="absolute inset-0 rounded-full blur-2xl opacity-80"
             style={{
-              width: `${planet.size}px`,
-              height: `${planet.size}px`,
+              background: planet.color,
             }}
-          >
-            {/* GLOW */}
-            <div
-              className="absolute inset-0 rounded-full blur-2xl opacity-80"
-              style={{
-                background: planet.color,
-              }}
-            />
+          />
 
-            {/* RING */}
-            {planet.ring && (
-              <div
-                className="absolute inset-[-8%] rounded-full border"
-                style={{
-                  borderColor: `${planet.color}80`,
-                }}
-              />
-            )}
-
-            {/* PLANET */}
+          {/* PLANET */}
+          <div className="relative w-[72px] h-[72px]">
             <img
               src={planet.image}
-              className="relative w-full h-full rounded-full object-cover group-hover:scale-110 transition duration-500"
+              className="w-full h-full rounded-full object-cover"
+            />
+
+            {/* ORBIT RING */}
+            <div
+              className="absolute inset-[-8%] rounded-full border"
+              style={{
+                borderColor: `${planet.color}90`,
+              }}
             />
           </div>
 
+          {/* NAME */}
           <div className="mt-2 text-center">
-            <h3 className="text-sm md:text-xl font-medium">
+            <h3 className="text-xs font-semibold">
               {planet.name}
             </h3>
-
-            <p className="text-white/40 text-[10px] md:text-sm">
-              {planet.username}
-            </p>
           </div>
         </motion.div>
       ))}
 
-      {/* BOTTOM BUTTONS */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 md:gap-4 scale-[0.85] md:scale-100">
+      {/* BOTTOM CONTROLS */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-50 scale-75">
         {[
-          ['📍', 'My Location'],
-          ['🔖', 'Bookmarks'],
-          ['⚙️', 'Filters'],
-          ['🚀', 'Jump Gate'],
+          '📍 My Location',
+          '🔖 Bookmarks',
+          '⚙️ Filters',
+          '🚀 Jump Gate',
         ].map((item) => (
           <button
-            key={item[1]}
-            className="h-11 px-4 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center gap-2 text-xs md:text-sm hover:bg-white/10 transition"
+            key={item}
+            className="h-10 px-3 rounded-xl bg-black/40 border border-white/10 text-[10px] backdrop-blur-xl"
           >
-            <span>{item[0]}</span>
-            {item[1]}
+            {item}
           </button>
         ))}
-      </div>
-
-      {/* ZOOM */}
-      <div className="absolute right-4 bottom-24 md:bottom-10 z-50 flex gap-2">
-        <button className="w-11 h-11 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center justify-center">
-          －
-        </button>
-
-        <button className="w-11 h-11 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center justify-center">
-          ＋
-        </button>
       </div>
     </div>
   )
