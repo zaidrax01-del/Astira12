@@ -2,16 +2,6 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  Search,
-  ChevronDown,
-  Bookmark,
-  LocateFixed,
-  SlidersHorizontal,
-  Rocket,
-  Plus,
-  Minus,
-} from 'lucide-react'
 
 const planets = [
   {
@@ -104,15 +94,24 @@ const planets = [
   },
 ]
 
+const SearchIcon = () => <span>🔍</span>
+const ChevronDownIcon = () => <span>▾</span>
+const BookmarkIcon = () => <span>🔖</span>
+const LocateIcon = () => <span>📍</span>
+const FilterIcon = () => <span>⚙️</span>
+const RocketIcon = () => <span>🚀</span>
+const PlusIcon = () => <span>＋</span>
+const MinusIcon = () => <span>－</span>
+
 export default function GalaxyMap() {
   const [selectedPlanet, setSelectedPlanet] = useState(planets[2])
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black text-white">
-      {/* SPACE BACKGROUND */}
+      {/* BACKGROUND */}
       <div className="absolute inset-0 bg-[url('/stars-bg.jpg')] bg-cover bg-center opacity-70" />
 
-      {/* PURPLE NEBULA */}
+      {/* NEBULA */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(120,0,255,0.25),transparent_55%)]" />
 
       {/* GALAXY CORE */}
@@ -123,7 +122,6 @@ export default function GalaxyMap() {
         style={{
           background:
             'radial-gradient(circle at center, rgba(255,255,255,0.95) 0%, rgba(180,100,255,0.9) 10%, rgba(80,0,255,0.5) 30%, rgba(0,0,0,0) 70%)',
-          filter: 'blur(1px)',
           boxShadow:
             '0 0 120px rgba(168,85,247,0.6), 0 0 220px rgba(59,130,246,0.35)',
         }}
@@ -133,7 +131,7 @@ export default function GalaxyMap() {
       <motion.div
         animate={{ rotate: -360 }}
         transition={{ duration: 250, repeat: Infinity, ease: 'linear' }}
-        className="absolute left-1/2 top-1/2 w-[1200px] h-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-500/10"
+        className="absolute left-1/2 top-1/2 w-[1200px] h-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           background:
             'conic-gradient(from 0deg, rgba(168,85,247,0.35), rgba(59,130,246,0.15), transparent, rgba(168,85,247,0.35))',
@@ -141,7 +139,7 @@ export default function GalaxyMap() {
         }}
       />
 
-      {/* ORBIT LINES */}
+      {/* ORBITS */}
       <div className="absolute inset-0 pointer-events-none">
         <svg className="w-full h-full">
           <circle
@@ -165,7 +163,7 @@ export default function GalaxyMap() {
 
       {/* LEFT PANELS */}
       <div className="absolute left-5 top-28 z-40 flex flex-col gap-5">
-        <div className="w-[260px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 shadow-[0_0_40px_rgba(168,85,247,0.25)]">
+        <div className="w-[260px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-5">
           <h3 className="text-sm font-semibold tracking-widest text-white/80 mb-4">
             LIVE EVENTS
           </h3>
@@ -180,7 +178,9 @@ export default function GalaxyMap() {
 
             <div>
               <p className="text-white">Star Fair</p>
-              <p className="text-cyan-400 text-sm">Visit the Star Fair</p>
+              <p className="text-cyan-400 text-sm">
+                Visit the Star Fair
+              </p>
             </div>
 
             <div>
@@ -190,7 +190,7 @@ export default function GalaxyMap() {
           </div>
         </div>
 
-        <div className="w-[260px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+        <div className="w-[260px] rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-5">
           <h3 className="text-sm font-semibold tracking-widest text-white/80 mb-4">
             STAR MAP LEGEND
           </h3>
@@ -205,44 +205,61 @@ export default function GalaxyMap() {
         </div>
       </div>
 
-      {/* RIGHT INFO PANEL */}
-      <div className="absolute right-5 top-24 z-40 w-[320px] rounded-3xl border border-cyan-400/20 bg-black/50 backdrop-blur-2xl p-5 shadow-[0_0_50px_rgba(59,130,246,0.25)]">
+      {/* RIGHT PANEL */}
+      <div className="absolute right-5 top-24 z-40 w-[320px] rounded-3xl border border-cyan-400/20 bg-black/50 backdrop-blur-2xl p-5">
         <img
           src={selectedPlanet.image}
           className="w-full h-[220px] rounded-2xl object-cover"
         />
 
         <div className="mt-4">
-          <h2 className="text-3xl font-semibold">{selectedPlanet.name}</h2>
-          <p className="text-white/50">{selectedPlanet.username}</p>
+          <h2 className="text-3xl font-semibold">
+            {selectedPlanet.name}
+          </h2>
+
+          <p className="text-white/50">
+            {selectedPlanet.username}
+          </p>
 
           <div className="grid grid-cols-3 gap-3 mt-5">
             <div>
-              <p className="text-white/40 text-sm">Habitability</p>
+              <p className="text-white/40 text-sm">
+                Habitability
+              </p>
+
               <p className="text-green-400">High</p>
             </div>
 
             <div>
-              <p className="text-white/40 text-sm">Population</p>
+              <p className="text-white/40 text-sm">
+                Population
+              </p>
+
               <p>210</p>
             </div>
 
             <div>
-              <p className="text-white/40 text-sm">Rarity</p>
-              <p className="text-pink-400">Legendary</p>
+              <p className="text-white/40 text-sm">
+                Rarity
+              </p>
+
+              <p className="text-pink-400">
+                Legendary
+              </p>
             </div>
           </div>
 
-          <button className="w-full mt-6 h-14 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-lg font-semibold shadow-[0_0_35px_rgba(168,85,247,0.5)]">
+          <button className="w-full mt-6 h-14 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-lg font-semibold">
             Visit Planet
           </button>
         </div>
       </div>
 
-      {/* TOP SEARCH */}
+      {/* SEARCH */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 flex gap-4">
         <div className="w-[520px] h-14 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl flex items-center px-5">
-          <Search className="w-5 h-5 text-white/50" />
+          <SearchIcon />
+
           <input
             placeholder="Search planets, explorers, coordinates..."
             className="bg-transparent outline-none w-full ml-3 text-white placeholder:text-white/30"
@@ -251,19 +268,23 @@ export default function GalaxyMap() {
 
         <button className="h-14 px-6 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl flex items-center gap-2">
           All Sectors
-          <ChevronDown size={18} />
+          <ChevronDownIcon />
         </button>
       </div>
 
-      {/* CENTER LABEL */}
+      {/* CORE */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 text-center">
-        <div className="text-[70px] text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.9)]">
+        <div className="text-[70px] text-white">
           ✦
         </div>
 
-        <h2 className="text-2xl font-bold tracking-[0.3em]">THE CORE</h2>
+        <h2 className="text-2xl font-bold tracking-[0.3em]">
+          THE CORE
+        </h2>
 
-        <p className="text-white/50 mt-2">Astira Central Hub</p>
+        <p className="text-white/50 mt-2">
+          Astira Central Hub
+        </p>
       </div>
 
       {/* PLANETS */}
@@ -317,8 +338,13 @@ export default function GalaxyMap() {
           </div>
 
           <div className="mt-3 text-center">
-            <h3 className="text-2xl font-medium">{planet.name}</h3>
-            <p className="text-white/40 text-sm">{planet.username}</p>
+            <h3 className="text-2xl font-medium">
+              {planet.name}
+            </h3>
+
+            <p className="text-white/40 text-sm">
+              {planet.username}
+            </p>
           </div>
         </motion.div>
       ))}
@@ -327,19 +353,19 @@ export default function GalaxyMap() {
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-4">
         {[
           {
-            icon: <LocateFixed size={18} />,
+            icon: <LocateIcon />,
             label: 'My Location',
           },
           {
-            icon: <Bookmark size={18} />,
+            icon: <BookmarkIcon />,
             label: 'Bookmarks',
           },
           {
-            icon: <SlidersHorizontal size={18} />,
+            icon: <FilterIcon />,
             label: 'Filters',
           },
           {
-            icon: <Rocket size={18} />,
+            icon: <RocketIcon />,
             label: 'Jump Gate',
           },
         ].map((item) => (
@@ -353,14 +379,14 @@ export default function GalaxyMap() {
         ))}
       </div>
 
-      {/* ZOOM BUTTONS */}
+      {/* ZOOM */}
       <div className="absolute right-[360px] bottom-10 z-50 flex gap-3">
         <button className="w-14 h-14 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center justify-center">
-          <Minus />
+          <MinusIcon />
         </button>
 
         <button className="w-14 h-14 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl flex items-center justify-center">
-          <Plus />
+          <PlusIcon />
         </button>
       </div>
     </div>
