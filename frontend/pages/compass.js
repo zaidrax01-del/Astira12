@@ -11,7 +11,7 @@ const planets = [
     color: '#3b82f6',
     x: '28%',
     y: '38%',
-    size: 110,
+    size: 95,
   },
   {
     id: 2,
@@ -20,7 +20,7 @@ const planets = [
     color: '#9333ea',
     x: '50%',
     y: '24%',
-    size: 105,
+    size: 90,
   },
   {
     id: 3,
@@ -29,25 +29,25 @@ const planets = [
     color: '#22c55e',
     x: '72%',
     y: '38%',
-    size: 120,
+    size: 105,
   },
   {
     id: 4,
     name: 'Zenithor',
     image: '/planet-zenithor.png',
     color: '#f97316',
-    x: '80%',
+    x: '82%',
     y: '62%',
-    size: 95,
+    size: 90,
   },
   {
     id: 5,
     name: 'Auroria',
     image: '/planet-auroria.png',
     color: '#06b6d4',
-    x: '67%',
-    y: '80%',
-    size: 110,
+    x: '68%',
+    y: '82%',
+    size: 100,
   },
   {
     id: 6,
@@ -55,26 +55,26 @@ const planets = [
     image: '/planet-nexoria.png',
     color: '#a855f7',
     x: '50%',
-    y: '88%',
-    size: 120,
+    y: '92%',
+    size: 105,
   },
   {
     id: 7,
     name: 'Dunora',
     image: '/planet-dunora.png',
     color: '#c08457',
-    x: '33%',
-    y: '80%',
-    size: 100,
+    x: '32%',
+    y: '82%',
+    size: 95,
   },
   {
     id: 8,
     name: 'Solvora',
     image: '/planet-solvora.png',
     color: '#ef4444',
-    x: '20%',
+    x: '18%',
     y: '62%',
-    size: 100,
+    size: 92,
   },
 ]
 
@@ -83,12 +83,13 @@ export default function GalaxyMap() {
 
   return (
     <div className="relative w-full h-[100svh] overflow-hidden bg-black text-white">
+
       {/* SPACE BASE */}
       <div className="absolute inset-0 bg-[#02010a]" />
 
-      {/* STARS */}
+      {/* STAR GRID */}
       <div
-        className="absolute inset-0 opacity-70"
+        className="absolute inset-0 opacity-60"
         style={{
           backgroundImage: `
             radial-gradient(white 1px, transparent 1px),
@@ -99,121 +100,117 @@ export default function GalaxyMap() {
         }}
       />
 
-      {/* SMALL RANDOM STARS */}
-      {[...Array(120)].map((_, i) => (
+      {/* TWINKLING STARS */}
+      {[...Array(160)].map((_, i) => (
         <motion.div
           key={i}
           animate={{
             opacity: [0.2, 1, 0.2],
           }}
           transition={{
-            duration: 2 + Math.random() * 4,
+            duration: 2 + Math.random() * 5,
             repeat: Infinity,
           }}
           className="absolute rounded-full bg-white"
           style={{
-            width: Math.random() * 3 + 'px',
-            height: Math.random() * 3 + 'px',
+            width: Math.random() * 2.5 + 'px',
+            height: Math.random() * 2.5 + 'px',
             top: Math.random() * 100 + '%',
             left: Math.random() * 100 + '%',
           }}
         />
       ))}
 
-      {/* HUGE NEBULA */}
+      {/* FLOATING PARTICLES */}
+      {[...Array(25)].map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.2, 0.7, 0.2],
+          }}
+          transition={{
+            duration: 8 + Math.random() * 6,
+            repeat: Infinity,
+          }}
+          className="absolute rounded-full"
+          style={{
+            width: 6 + Math.random() * 10,
+            height: 6 + Math.random() * 10,
+            top: Math.random() * 100 + '%',
+            left: Math.random() * 100 + '%',
+            background:
+              i % 2 === 0
+                ? 'rgba(168,85,247,0.8)'
+                : 'rgba(59,130,246,0.8)',
+            filter: 'blur(3px)',
+          }}
+        />
+      ))}
+
+      {/* NEBULA LIGHTING */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-[70vw] h-[70vw] bg-fuchsia-700/20 rounded-full blur-[180px] top-[5%] left-[10%]" />
 
-        <div className="absolute w-[65vw] h-[65vw] bg-blue-600/20 rounded-full blur-[180px] bottom-[-10%] right-[5%]" />
+        <div className="absolute w-[80vw] h-[80vw] bg-fuchsia-700/20 rounded-full blur-[180px] top-[0%] left-[5%]" />
 
-        <div className="absolute w-[35vw] h-[35vw] bg-pink-500/10 rounded-full blur-[140px] top-[40%] left-[40%]" />
+        <div className="absolute w-[70vw] h-[70vw] bg-blue-600/20 rounded-full blur-[180px] bottom-[-10%] right-[0%]" />
+
+        <div className="absolute w-[40vw] h-[40vw] bg-pink-500/10 rounded-full blur-[140px] top-[40%] left-[35%]" />
       </div>
 
-      {/* GALAXY CORE AREA */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {/* OUTER GLOW */}
-        <div className="absolute w-[70vw] h-[70vw] rounded-full bg-fuchsia-500/10 blur-[180px]" />
+      {/* REAL GALAXY CORE */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
 
-        {/* GALAXY SPIRAL */}
-        <motion.div
+        {/* GALAXY IMAGE */}
+        <motion.img
+          src="/galaxy.png"
           animate={{ rotate: 360 }}
           transition={{
-            duration: 220,
+            duration: 260,
             repeat: Infinity,
             ease: 'linear',
           }}
-          className="absolute w-[60vw] h-[60vw] rounded-full"
+          className="absolute w-[220vw] md:w-[140vw] max-w-none opacity-90 mix-blend-screen pointer-events-none select-none"
           style={{
-            background: `
-              conic-gradient(
-                from 0deg,
-                rgba(168,85,247,0),
-                rgba(168,85,247,0.25),
-                rgba(59,130,246,0.18),
-                rgba(255,255,255,0.05),
-                rgba(168,85,247,0)
-              )
+            filter: `
+              drop-shadow(0 0 120px rgba(168,85,247,0.45))
+              saturate(1.2)
+              brightness(1.1)
             `,
-            filter:
-              'blur(50px) drop-shadow(0 0 120px rgba(168,85,247,0.5))',
           }}
         />
 
-        {/* SECOND GALAXY ARM */}
+        {/* EXTRA GLOW */}
+        <div className="absolute w-[50vw] h-[50vw] rounded-full bg-fuchsia-500/20 blur-[160px]" />
+
+        {/* ENERGY PULSE */}
         <motion.div
-          animate={{ rotate: -360 }}
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.3, 0.8, 0.3],
+          }}
           transition={{
-            duration: 300,
+            duration: 6,
             repeat: Infinity,
-            ease: 'linear',
           }}
-          className="absolute w-[48vw] h-[48vw] rounded-full"
-          style={{
-            background: `
-              conic-gradient(
-                from 180deg,
-                rgba(59,130,246,0),
-                rgba(59,130,246,0.22),
-                rgba(168,85,247,0.15),
-                rgba(255,255,255,0.03),
-                rgba(59,130,246,0)
-              )
-            `,
-            filter: 'blur(60px)',
-          }}
+          className="absolute w-[22vw] h-[22vw] rounded-full border border-fuchsia-400/30"
         />
 
-        {/* ORBIT RINGS */}
-        {[260, 380, 520].map((size, i) => (
-          <motion.div
-            key={i}
-            animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
-            transition={{
-              duration: 120 + i * 50,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-            className="absolute rounded-full border border-white/10"
-            style={{
-              width: size,
-              height: size,
-            }}
-          />
-        ))}
+        {/* INNER LIGHT */}
+        <div className="absolute w-52 h-52 rounded-full bg-white blur-[120px] opacity-20" />
 
-        {/* CENTER */}
-        <div className="absolute w-44 h-44 rounded-full bg-fuchsia-500 blur-[120px] opacity-80" />
-
+        {/* CENTER TEXT */}
         <div className="absolute text-center z-30">
           <motion.div
             animate={{
               scale: [1, 1.12, 1],
+              rotate: [0, 4, -4, 0],
             }}
             transition={{
-              duration: 4,
+              duration: 5,
               repeat: Infinity,
             }}
-            className="text-7xl drop-shadow-[0_0_60px_white]"
+            className="text-7xl text-white drop-shadow-[0_0_60px_white]"
           >
             ✦
           </motion.div>
@@ -228,13 +225,14 @@ export default function GalaxyMap() {
         </div>
       </div>
 
-      {/* SVG ORBITS */}
+      {/* ORBIT PATHS */}
       <svg className="absolute inset-0 w-full h-full">
+
         <circle
           cx="50%"
           cy="50%"
-          r="250"
-          stroke="rgba(168,85,247,0.12)"
+          r="180"
+          stroke="rgba(168,85,247,0.10)"
           strokeWidth="1"
           fill="none"
         />
@@ -242,7 +240,7 @@ export default function GalaxyMap() {
         <circle
           cx="50%"
           cy="50%"
-          r="380"
+          r="300"
           stroke="rgba(59,130,246,0.08)"
           strokeWidth="1"
           fill="none"
@@ -251,17 +249,45 @@ export default function GalaxyMap() {
         <circle
           cx="50%"
           cy="50%"
-          r="520"
-          stroke="rgba(255,255,255,0.06)"
+          r="420"
+          stroke="rgba(255,255,255,0.05)"
           strokeWidth="1"
+          fill="none"
+        />
+
+        {/* TRAVEL ROUTES */}
+        <path
+          d="M250 420 Q500 250 760 420"
+          stroke="rgba(0,255,255,0.25)"
+          strokeDasharray="8 8"
+          fill="none"
+        />
+
+        <path
+          d="M260 720 Q500 920 760 720"
+          stroke="rgba(168,85,247,0.20)"
+          strokeDasharray="10 10"
           fill="none"
         />
       </svg>
 
-      {/* SEARCH BAR */}
+      {/* CINEMATIC VIGNETTE */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.92) 100%)',
+        }}
+      />
+
+      {/* SEARCH */}
       <div className="absolute top-5 left-1/2 -translate-x-1/2 z-50 flex gap-3 w-[92%] max-w-[850px]">
+
         <div className="flex-1 h-14 rounded-full bg-black/60 border border-white/20 backdrop-blur-2xl flex items-center px-5">
-          <span className="text-white/40">🔍</span>
+
+          <span className="text-white/40">
+            🔍
+          </span>
 
           <input
             placeholder="Search planets, explorers, coordinates..."
@@ -276,18 +302,21 @@ export default function GalaxyMap() {
 
       {/* LEFT PANELS */}
       <div className="absolute left-4 top-24 z-40 hidden xl:block">
-        <div className="w-[260px] rounded-[32px] bg-black/55 border border-white/20 backdrop-blur-2xl p-5 mb-4">
+
+        <div className="w-[260px] rounded-[32px] bg-black/60 border border-white/20 backdrop-blur-2xl p-5 mb-4 shadow-[0_0_60px_rgba(168,85,247,0.15)]">
+
           <h3 className="text-xs tracking-[0.35em] text-white/60 mb-5">
             LIVE EVENTS
           </h3>
 
           <div className="space-y-5">
+
             <div>
               <p className="text-sm font-medium">
                 Cosmic Storm
               </p>
 
-              <p className="text-purple-400 text-sm">
+              <p className="text-sm text-purple-400">
                 Double evolution chance
               </p>
             </div>
@@ -297,7 +326,7 @@ export default function GalaxyMap() {
                 Star Fair
               </p>
 
-              <p className="text-cyan-400 text-sm">
+              <p className="text-sm text-cyan-400">
                 Visit the Star Fair
               </p>
             </div>
@@ -307,14 +336,15 @@ export default function GalaxyMap() {
                 Planet Party
               </p>
 
-              <p className="text-green-400 text-sm">
+              <p className="text-sm text-green-400">
                 Live now
               </p>
             </div>
           </div>
         </div>
 
-        <div className="w-[260px] rounded-[32px] bg-black/55 border border-white/20 backdrop-blur-2xl p-5">
+        <div className="w-[260px] rounded-[32px] bg-black/60 border border-white/20 backdrop-blur-2xl p-5 shadow-[0_0_60px_rgba(168,85,247,0.12)]">
+
           <h3 className="text-xs tracking-[0.35em] text-white/60 mb-5">
             STAR MAP LEGEND
           </h3>
@@ -329,7 +359,8 @@ export default function GalaxyMap() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="absolute right-4 top-20 z-40 w-[320px] rounded-[34px] bg-black/60 border border-white/20 backdrop-blur-2xl p-5 hidden xl:block">
+      <div className="absolute right-4 top-20 z-40 w-[320px] rounded-[34px] bg-black/60 border border-white/20 backdrop-blur-2xl p-5 shadow-[0_0_80px_rgba(168,85,247,0.15)] hidden xl:block">
+
         <img
           src={selectedPlanet.image}
           className="w-full h-[200px] rounded-[24px] object-cover"
@@ -344,8 +375,11 @@ export default function GalaxyMap() {
         </p>
 
         <div className="grid grid-cols-3 gap-4 mt-6 text-sm">
+
           <div>
-            <p className="text-white/40">Habitability</p>
+            <p className="text-white/40">
+              Habitability
+            </p>
 
             <p className="text-green-400 mt-1">
               High
@@ -353,13 +387,19 @@ export default function GalaxyMap() {
           </div>
 
           <div>
-            <p className="text-white/40">Population</p>
+            <p className="text-white/40">
+              Population
+            </p>
 
-            <p className="mt-1">210</p>
+            <p className="mt-1">
+              210
+            </p>
           </div>
 
           <div>
-            <p className="text-white/40">Rarity</p>
+            <p className="text-white/40">
+              Rarity
+            </p>
 
             <p className="text-pink-400 mt-1">
               Legendary
@@ -367,7 +407,13 @@ export default function GalaxyMap() {
           </div>
         </div>
 
-        <button className="w-full mt-7 h-14 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-sm font-semibold shadow-[0_0_50px_rgba(168,85,247,0.45)]">
+        <p className="text-sm text-white/60 leading-relaxed mt-6">
+          A lush world filled with glowing forests,
+          cosmic oceans, and vibrant lifeforms
+          thriving under celestial energy.
+        </p>
+
+        <button className="w-full mt-7 h-14 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-blue-500 text-sm font-semibold shadow-[0_0_40px_rgba(168,85,247,0.45)]">
           Visit Planet
         </button>
       </div>
@@ -395,6 +441,7 @@ export default function GalaxyMap() {
             transform: 'translate(-50%, -50%)',
           }}
         >
+
           {/* PLANET GLOW */}
           <div
             className="absolute inset-0 rounded-full blur-[60px] opacity-80"
@@ -407,7 +454,7 @@ export default function GalaxyMap() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{
-              duration: 30 + index * 4,
+              duration: 28 + index * 5,
               repeat: Infinity,
               ease: 'linear',
             }}
@@ -421,13 +468,13 @@ export default function GalaxyMap() {
           <motion.div
             animate={{ rotate: -360 }}
             transition={{
-              duration: 45 + index * 3,
+              duration: 40 + index * 5,
               repeat: Infinity,
               ease: 'linear',
             }}
             className="absolute inset-[-28%] rounded-full border border-dashed"
             style={{
-              borderColor: `${planet.color}22`,
+              borderColor: `${planet.color}20`,
             }}
           />
 
@@ -437,7 +484,11 @@ export default function GalaxyMap() {
             style={{
               width: planet.size,
               height: planet.size,
-              boxShadow: `0 0 80px ${planet.color}`,
+              boxShadow: `
+                inset -20px -20px 40px rgba(0,0,0,0.7),
+                inset 10px 10px 25px rgba(255,255,255,0.08),
+                0 0 80px ${planet.color}
+              `,
             }}
           >
             <img
@@ -448,6 +499,7 @@ export default function GalaxyMap() {
 
           {/* LABEL */}
           <div className="mt-4 text-center">
+
             <h3 className="text-lg font-semibold">
               {planet.name}
             </h3>
@@ -459,27 +511,9 @@ export default function GalaxyMap() {
         </motion.div>
       ))}
 
-      {/* MINI OBJECTS */}
-      {[...Array(20)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full opacity-70"
-          style={{
-            width: 8 + Math.random() * 18,
-            height: 8 + Math.random() * 18,
-            top: Math.random() * 100 + '%',
-            left: Math.random() * 100 + '%',
-            background:
-              i % 2 === 0
-                ? 'rgba(168,85,247,0.7)'
-                : 'rgba(59,130,246,0.7)',
-            filter: 'blur(2px)',
-          }}
-        />
-      ))}
-
       {/* BOTTOM CONTROLS */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-3 z-50">
+
         {[
           '📍 My Location',
           '🔖 Bookmarks',
@@ -488,7 +522,7 @@ export default function GalaxyMap() {
         ].map((item) => (
           <button
             key={item}
-            className="h-14 px-6 rounded-2xl bg-black/60 border border-white/20 backdrop-blur-2xl text-sm"
+            className="h-14 px-5 rounded-2xl bg-black/60 border border-white/20 backdrop-blur-2xl text-xs md:text-sm shadow-[0_0_40px_rgba(168,85,247,0.1)]"
           >
             {item}
           </button>
