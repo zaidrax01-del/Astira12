@@ -1,17 +1,17 @@
+# backend/routes/planet.py
 from flask import Blueprint, request, jsonify
 from models import db, User, Planet
-from services.ai_service import generate_planet_image, extract_style_signature
+from services.ai_service import generate_planet_images, extract_style_signature
 from services.lineage_service import check_derivative
 from services.security import check_cooldown, check_abuse
 import uuid
 
 planet_bp = Blueprint('planet', __name__)
 
-FALLBACK_IMAGE = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
+# No fallback image – if generation fails we return an error
 
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
-    """Only generates the AI image and returns it (does NOT save)."""
     wallet_address = request.headers.get('X-User-Id')
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -34,8 +34,9 @@ def generate():
 
     data = request.get_json()
     prompt = data.get('prompt', '')
+    num_samples = data.get('num_samples', 5)
 
-    # Check generation eligibility (free or premium)
+    # Check generation eligibility
     if user.free_generations_used < 3:
         user.free_generations_used += 1
         db.session.commit()
@@ -45,18 +46,22 @@ def generate():
     else:
         return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
-    # Generate AI image (returns a direct URL or None)
-    image_url = generate_planet_image(prompt)
-    if not image_url:
-        image_url = FALLBACK_IMAGE
+    # Generate multiple planet images – returns a list of URLs or None
+    images = generate_planet_images(prompt, num_samples)
+    if not images or len(images) == 0:
+        return jsonify({'error': 'AI generation failed'}), 500
 
-    # Extract a style signature for later lineage checks
-    style_sig = extract_style_signature(image_url)
+    # For each image, extract a style signature
+    results = []
+    for img_url in images:
+        style_sig = extract_style_signature(img_url)
+        results.append({
+            'image_url': img_url,
+            'style_signature': style_sig
+        })
 
-    return jsonify({
-        'image_url': image_url,
-        'style_signature': style_sig
-    })
+    return jsonify({'variations': results})
+
 
 @planet_bp.route('/save', methods=['POST'])
 def save_planet():
