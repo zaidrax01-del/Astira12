@@ -1,19 +1,23 @@
+# backend/services/fusion_engine.py
 import random
-from services.ai_service import generate_planet_image, extract_style_signature
+from services.ai_service import generate_planet_images, extract_style_signature
 from utils.ipfs import upload_to_ipfs
 
 def fuse_planets(planet1, planet2):
-    # For demo, generate a new planet image with combined prompt
+    """Combine two planets into a new hybrid planet.
+    Requests a single AI-generated image for the fusion.
+    Returns a dict with planet data, or None if generation fails.
+    """
     prompt = f"fusion of {planet1.name} ({planet1.planet_type}) and {planet2.name} ({planet2.planet_type})"
-    img_data = generate_planet_image(prompt)
-    if not img_data:
+    images = generate_planet_images(prompt, num_samples=1)
+    if not images or len(images) == 0:
         return None
-    ipfs_hash = upload_to_ipfs(img_data)
-    sig = extract_style_signature(img_data)
+    image_url = images[0]
+    sig = extract_style_signature(image_url)
     rarity = 'rare' if (planet1.rarity == 'Rare' or planet2.rarity == 'Rare') else 'common'
     return {
         'name': f"Fused-{planet1.name[:3]}{planet2.name[:3]}",
-        'image_ipfs_hash': ipfs_hash,
+        'image_ipfs_hash': image_url,   # stores the direct image URL
         'style_signature': sig,
         'rarity': rarity,
         'planet_type': 'hybrid'
