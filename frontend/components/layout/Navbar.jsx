@@ -12,6 +12,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const links = [
+    { name: 'Home'. path: '/' },
     { name: 'Explore', path: '/compass' },
     { name: 'Create', path: '/create' },
     { name: 'Marketplace', path: '/marketplace' },
