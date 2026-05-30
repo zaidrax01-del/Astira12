@@ -19,7 +19,8 @@ export default function CreatePlanet() {
   const [prompt, setPrompt] = useState('')
   const [selectedStyle, setSelectedStyle] = useState('Cosmic')
   const [loading, setLoading] = useState(false)
-  const [preview, setPreview] = useState(null)
+  const [preview, setPreview] = useState(null)               // currently selected variation
+  const [variations, setVariations] = useState([])           // all 5 generated
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [showPayment, setShowPayment] = useState(false)
@@ -46,37 +47,55 @@ export default function CreatePlanet() {
     return true
   }
 
+  // ── Request 5 AI variations ──
   const handleGenerate = () => {
     if (!requireConnection()) return
     if (!prompt.trim()) { alert('Please describe your planet.'); return }
-    if (freeGenerations > 0 || premium) generatePreview()
-    else setShowPayment(true)
+    if (freeGenerations > 0 || premium) {
+      generateVariations()
+    } else {
+      setShowPayment(true)
+    }
   }
 
-  const generatePreview = async () => {
+  const generateVariations = async () => {
     setLoading(true)
     try {
-      const resp = await api.post('/planet/generate', { prompt }, {
+      const resp = await api.post('/planet/generate', {
+        prompt,
+        num_samples: 5,
+      }, {
         headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
       })
-      setPreview({
-        image_url: resp.data.image_url,
-        style_signature: resp.data.style_signature,
-        name: 'Generated Planet',
-        type: 'Terrestrial',
-        rarity: 'Common',
-        habitability: 'N/A',
-        energy: 'N/A',
-      })
-      if (resp.data.free_remaining !== undefined) setFreeGenerations(resp.data.free_remaining)
+
+      const data = resp.data
+      if (data.variations && data.variations.length > 0) {
+        setVariations(data.variations)
+        // Select the first variation as the default preview
+        setPreview({
+          image_url: data.variations[0].image_url,
+          style_signature: data.variations[0].style_signature,
+          name: 'Generated Planet',
+          type: 'Terrestrial',
+          rarity: 'Common',
+          habitability: 'N/A',
+          energy: 'N/A',
+        })
+      }
+      if (data.free_remaining !== undefined) setFreeGenerations(data.free_remaining)
     } catch (err) {
-      if (err.response?.data?.error === 'premium_required') setShowPayment(true)
-      else alert('Generation failed.')
+      if (err.response?.data?.error === 'premium_required') {
+        setShowPayment(true)
+      } else {
+        alert('Generation failed.')
+      }
     }
     setLoading(false)
   }
 
+  // ── Save the currently selected planet ──
   const handleSave = async () => {
+    if (!preview) return
     if (!name.trim()) { alert('Please name your planet.'); return }
     setLoading(true)
     try {
@@ -86,16 +105,30 @@ export default function CreatePlanet() {
         description,
         style_signature: preview.style_signature,
       }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
-      alert('Planet saved!')
-      setPreview(null); setName(''); setDescription(''); setPrompt('')
-    } catch (err) { alert('Failed to save.') }
+      alert('Planet saved to your Cosmic Compass!')
+      setPreview(null)
+      setVariations([])
+      setName('')
+      setDescription('')
+      setPrompt('')
+    } catch (err) {
+      alert('Failed to save planet.')
+    }
     setLoading(false)
   }
 
-  const handleDiscard = () => { setPreview(null); setName(''); setDescription('') }
+  // ── Discard current generation ──
+  const handleDiscard = () => {
+    setPreview(null)
+    setVariations([])
+    setName('')
+    setDescription('')
+  }
 
+  // ── Premium unlock ──
   const handleUnlockPremium = async (currency) => {
-    setShowPayment(false); setLoading(true)
+    setShowPayment(false)
+    setLoading(true)
     try {
       let signature
       if (currency === 'SOL') {
@@ -111,8 +144,11 @@ export default function CreatePlanet() {
         headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
       })
       setPremium(true)
-      generatePreview()
-    } catch (err) { alert('Transaction failed: ' + (err.message || err)); setLoading(false) }
+      generateVariations()
+    } catch (err) {
+      alert('Transaction failed: ' + (err.message || err))
+      setLoading(false)
+    }
   }
 
   // rotate planet left/right
@@ -127,6 +163,7 @@ export default function CreatePlanet() {
     habitability: '78%',
     energy: 'High',
   }
+
   const displayPlanet = preview || defaultPlanet
 
   return (
@@ -173,7 +210,7 @@ export default function CreatePlanet() {
             style={{ width: '100%', height: '140px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.25)', color: 'white', padding: '16px', resize: 'none', outline: 'none', fontSize: '14px', marginBottom: '18px' }}
           />
 
-          {/* ---- working style selector ---- */}
+          {/* style selector */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
             {['Cosmic', 'Realistic', 'Fantasy', 'Sci-Fi', 'Abstract'].map(style => (
               <div
@@ -223,7 +260,7 @@ export default function CreatePlanet() {
             <div style={{ position: 'absolute', width: '720px', height: '220px', border: '8px solid rgba(255,220,255,0.8)', borderRadius: '50%', top: '49%', left: '50%', transform: 'translate(-50%, -50%) rotate(-10deg)', boxShadow: '0 0 30px rgba(255,255,255,0.3)' }} />
             <div style={{ position: 'absolute', width: '760px', height: '240px', border: '3px solid rgba(255,255,255,0.35)', borderRadius: '50%', top: '49%', left: '50%', transform: 'translate(-50%, -50%) rotate(-10deg)' }} />
 
-            {/* ---- working 360° controls ---- */}
+            {/* 360° controls */}
             <div style={{ position: 'absolute', bottom: '28px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.45)', padding: '12px 28px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', fontWeight: '700', userSelect: 'none' }}>
               <span onClick={rotateLeft} style={{ cursor: 'pointer' }}>◀</span>
               <span>360°</span>
@@ -231,22 +268,56 @@ export default function CreatePlanet() {
             </div>
           </div>
 
-          {/* Variations carousel */}
+          {/* ===== AI GENERATION RESULTS (CAROUSEL) ===== */}
           <div style={{ marginTop: '20px' }}>
-            <div style={{ marginBottom: '14px', color: '#d8c7ff', fontWeight: '700', fontSize: '15px' }}>AI Generation Results</div>
+            <div style={{ marginBottom: '14px', color: '#d8c7ff', fontWeight: '700', fontSize: '15px' }}>
+              AI Generation Results
+            </div>
             <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
-              {(preview ? Array(5).fill(preview.image_url) : ['/aurum-prime.png','/verdantia.png','/thalassaris.png','/ignis-vex.png','/terranova-prime.png']).map((src, i) => (
-                <div key={i} style={{ minWidth: '150px', height: '150px', borderRadius: '22px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)' }}>
-                  <img src={src} alt={`var ${i+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              ))}
+              {variations.length > 0 ? (
+                variations.map((variation, i) => (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      setPreview({
+                        image_url: variation.image_url,
+                        style_signature: variation.style_signature,
+                        name: preview?.name || 'Generated Planet',
+                        type: preview?.type || 'Terrestrial',
+                        rarity: preview?.rarity || 'Common',
+                        habitability: preview?.habitability || 'N/A',
+                        energy: preview?.energy || 'N/A',
+                      })
+                    }}
+                    style={{
+                      minWidth: '150px',
+                      height: '150px',
+                      borderRadius: '22px',
+                      overflow: 'hidden',
+                      border: preview?.image_url === variation.image_url ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.05)',
+                      cursor: 'pointer',
+                      transition: 'border 0.2s',
+                    }}
+                  >
+                    <img src={variation.image_url} alt={`variation ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))
+              ) : (
+                // Default sample planets when nothing generated yet
+                ['/aurum-prime.png', '/verdantia.png', '/thalassaris.png', '/ignis-vex.png', '/terranova-prime.png'].map((img, i) => (
+                  <div key={i} style={{ minWidth: '150px', height: '150px', borderRadius: '22px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)' }}>
+                    <img src={img} alt={`default ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
         {/* ===== RIGHT PANEL ===== */}
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '20px', backdropFilter: 'blur(12px)', boxShadow: '0 0 30px rgba(170,80,255,0.25)' }}>
-          {/* ---- working tabs ---- */}
+          {/* tabs */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
             {['Overview', 'Attributes', 'History'].map(tab => (
               <div
