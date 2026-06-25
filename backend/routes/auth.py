@@ -42,7 +42,7 @@ def verify():
     signature_b58 = data.get('signature')
     user = User.query.filter_by(wallet_address=wallet).first()
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'Explorer not found'}), 404
     message = f"Sign this message to login to Astira: {user.nonce}"
     message_bytes = message.encode('utf-8')
     if verify_signature(wallet, message_bytes, signature_b58):
@@ -52,15 +52,15 @@ def verify():
     return jsonify({'error': 'Invalid signature'}), 401
 
 @auth_bp.route('/status', methods=['GET'])
-def user_status():
+def explorer_status():
     wallet_address = request.headers.get('X-User-Id')
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
     user = User.query.filter_by(wallet_address=wallet_address).first()
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'Explorer not found'}), 404
     return jsonify({
         'wallet_address': user.wallet_address,
-        'free_generations_used': user.free_generations_used,
-        'has_premium_generation': user.has_premium_generation,
+        'free_discoveries_used': user.free_discoveries_used,
+        'paid_discoveries_available': user.paid_discoveries_available,
     })
