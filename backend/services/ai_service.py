@@ -1,15 +1,14 @@
-# backend/services/ai_service.py
 import requests
 import random
 from flask import current_app
 
 def generate_planet_images(prompt, num_samples=5):
-    """Generate multiple planet images using the ModelsLab API.
+    """
+    Generate one or more planet images using the ModelsLab API.
     Returns a list of image URLs, or None if generation fails or no API key is set.
     """
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
-        # No API key → no fallback – return None so the route returns a 500 error
         print("ERROR: MODELS_LAB_API_KEY not configured")
         return None
 
@@ -17,7 +16,7 @@ def generate_planet_images(prompt, num_samples=5):
         url = "https://modelslab.com/api/v6/realtime/text2img"
         payload = {
             "key": api_key,
-            "prompt": f"cinematic 4K space art of a planet: {prompt}, astrophotography, hyperrealistic",
+            "prompt": prompt,
             "negative_prompt": "cars, people, humans, faces, buildings, text, letters, vehicles, spaceships, animals, creatures, anything not a planet",
             "width": 512,
             "height": 512,
@@ -40,8 +39,19 @@ def generate_planet_images(prompt, num_samples=5):
         return None
 
 
+def generate_planet_image(prompt):
+    """
+    Single image generation – kept for backward compatibility (fusion, etc.).
+    """
+    images = generate_planet_images(prompt, 1)
+    if images and len(images) > 0:
+        return images[0]
+    return None
+
+
 def extract_style_signature(image_url):
-    """Generate a mock style signature for lineage tracking.
-    In production this would use a vision model to extract real features.
+    """
+    Mock style signature for lineage tracking.
+    In production this would use a real vision model.
     """
     return [random.random() for _ in range(10)]
