@@ -39,6 +39,11 @@ class Planet(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_deleted = db.Column(db.Boolean, default=False)
 
+    # permanent coordinates inside the shared universe
+    coord_x = db.Column(db.Integer, default=0)
+    coord_y = db.Column(db.Integer, default=0)
+    coord_z = db.Column(db.Integer, default=0)
+
 class TokenLedger(db.Model):
     __tablename__ = 'token_ledger'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
