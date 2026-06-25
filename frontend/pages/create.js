@@ -1,5 +1,5 @@
 'use client'
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Web3Context } from '../context/Web3Context'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -9,27 +9,39 @@ import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 
 const PREMIUM_PRICE_USD = 7.99
+const ART_STYLES = ['Cosmic', 'Sci-Fi', 'Fantasy', 'Ancient', 'Realistic', 'Cinematic']
+const CREATIVITY_LEVELS = ['Strict', 'Balanced', 'Creative']
+const LOADING_SENTENCES = [
+  'Initializing Universe...', 'Reading imagination...', 'Analyzing cosmic patterns...',
+  'Forging Planet DNA...', 'Calculating gravity...', 'Generating atmosphere...',
+  'Discovering moons...', 'Scanning biosignatures...', 'Determining rarity...',
+  'Rendering planet...', 'Planet stabilized.', 'Planet discovered.'
+]
 
 export default function CreatePlanet() {
   const { account, token, sendSolPayment, sendUsdcPayment, hasPremium } = useContext(Web3Context)
   const { connected } = useWallet()
   const { setVisible } = useWalletModal()
 
-  // ------ generation state ------
   const [prompt, setPrompt] = useState('')
   const [selectedStyle, setSelectedStyle] = useState('Cosmic')
+  const [creativity, setCreativity] = useState('Balanced')
   const [loading, setLoading] = useState(false)
-  const [preview, setPreview] = useState(null)               // currently selected variation
-  const [variations, setVariations] = useState([])           // all 5 generated
+  const [variations, setVariations] = useState([])
+  const [previewIndex, setPreviewIndex] = useState(0)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [showPayment, setShowPayment] = useState(false)
   const [freeGenerations, setFreeGenerations] = useState(3)
   const [premium, setPremium] = useState(false)
+  const [showPayment, setShowPayment] = useState(false)
 
-  // ------ UI interactive state ------
-  const [rotation, setRotation] = useState(0)
-  const [activeTab, setActiveTab] = useState('Overview')
+  const [loadingStep, setLoadingStep] = useState(-1)
+  const [discoveryComplete, setDiscoveryComplete] = useState(false)
+  const [apiResponse, setApiResponse] = useState(null)
+  const loadingTimer = useRef(null)
+
+  const [rarityRevealStep, setRarityRevealStep] = useState(0)
+  const [showRarityText, setShowRarityText] = useState(false)
 
   useEffect(() => {
     if (account) {
@@ -47,85 +59,107 @@ export default function CreatePlanet() {
     return true
   }
 
-  // ── Request 5 AI variations ──
   const handleGenerate = () => {
     if (!requireConnection()) return
     if (!prompt.trim()) { alert('Please describe your planet.'); return }
-    if (freeGenerations > 0 || premium) {
-      generateVariations()
-    } else {
-      setShowPayment(true)
-    }
+    if (freeGenerations > 0 || premium) startDiscovery()
+    else setShowPayment(true)
   }
 
-  const generateVariations = async () => {
+  const startDiscovery = async () => {
+    setDiscoveryComplete(false)
+    setVariations([])
+    setPreviewIndex(0)
+    setName('')
+    setDescription('')
+    setRarityRevealStep(0)
+    setShowRarityText(false)
     setLoading(true)
-    try {
-      const resp = await api.post('/planet/generate', {
-        prompt,
-        num_samples: 5,
-      }, {
-        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-      })
+    setLoadingStep(0)
 
-      const data = resp.data
-      if (data.variations && data.variations.length > 0) {
-        setVariations(data.variations)
-        // Select the first variation as the default preview
-        setPreview({
-          image_url: data.variations[0].image_url,
-          style_signature: data.variations[0].style_signature,
-          name: 'Generated Planet',
-          type: 'Terrestrial',
-          rarity: 'Common',
-          habitability: 'N/A',
-          energy: 'N/A',
-        })
-      }
-      if (data.free_remaining !== undefined) setFreeGenerations(data.free_remaining)
-    } catch (err) {
-      if (err.response?.data?.error === 'premium_required') {
-        setShowPayment(true)
+    const apiPromise = api.post('/planet/generate', {
+      prompt,
+      num_samples: 5,
+    }, {
+      headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
+    }).then(res => {
+      if (res.data.variations && res.data.variations.length > 0) {
+        setApiResponse(res.data)
       } else {
-        alert('Generation failed.')
+        setApiResponse({ error: true })
       }
-    }
-    setLoading(false)
+    }).catch(() => setApiResponse({ error: true }))
+
+    let step = 0
+    loadingTimer.current = setInterval(() => {
+      step++
+      if (step < LOADING_SENTENCES.length) setLoadingStep(step)
+      else {
+        clearInterval(loadingTimer.current)
+        finalizeDiscovery()
+      }
+    }, 800)
   }
 
-  // ── Save the currently selected planet ──
+  const finalizeDiscovery = async () => {
+    await new Promise(resolve => setTimeout(resolve, 1500)) // wait for API
+    if (!apiResponse || apiResponse.error) {
+      setLoading(false)
+      setLoadingStep(-1)
+      alert('Discovery failed. Please try again.')
+      return
+    }
+    setVariations(apiResponse.variations)
+    setPreviewIndex(0)
+    setName('')
+    setDescription('')
+    setLoading(false)
+    setLoadingStep(-1)
+    setDiscoveryComplete(true)
+    setRarityRevealStep(1)
+    const starInterval = setInterval(() => {
+      setRarityRevealStep(prev => {
+        if (prev >= 5) {
+          clearInterval(starInterval)
+          setTimeout(() => setShowRarityText(true), 300)
+          return 6
+        }
+        return prev + 1
+      })
+    }, 500)
+  }
+
   const handleSave = async () => {
-    if (!preview) return
+    const planet = variations[previewIndex]
+    if (!planet) return
     if (!name.trim()) { alert('Please name your planet.'); return }
     setLoading(true)
     try {
       await api.post('/planet/save', {
-        image_url: preview.image_url,
+        image_url: planet.image_url,
         name,
         description,
-        style_signature: preview.style_signature,
+        style_signature: planet.style_signature,
       }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
-      alert('Planet saved to your Cosmic Compass!')
-      setPreview(null)
+      alert('Planet saved!')
+      setDiscoveryComplete(false)
       setVariations([])
+      setPreviewIndex(0)
       setName('')
       setDescription('')
       setPrompt('')
-    } catch (err) {
-      alert('Failed to save planet.')
-    }
+    } catch (err) { alert('Failed to save.') }
     setLoading(false)
   }
 
-  // ── Discard current generation ──
   const handleDiscard = () => {
-    setPreview(null)
+    setDiscoveryComplete(false)
     setVariations([])
+    setPreviewIndex(0)
     setName('')
     setDescription('')
   }
 
-  // ── Premium unlock ──
   const handleUnlockPremium = async (currency) => {
     setShowPayment(false)
     setLoading(true)
@@ -144,263 +178,155 @@ export default function CreatePlanet() {
         headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
       })
       setPremium(true)
-      generateVariations()
-    } catch (err) {
-      alert('Transaction failed: ' + (err.message || err))
-      setLoading(false)
-    }
+      startDiscovery()
+    } catch (err) { alert('Transaction failed: ' + (err.message || err)); setLoading(false) }
   }
 
-  // rotate planet left/right
-  const rotateLeft = () => setRotation(prev => prev - 30)
-  const rotateRight = () => setRotation(prev => prev + 30)
-
-  const defaultPlanet = {
-    image: '/planet-texture.jpg',
-    name: 'Asteria Prime',
-    type: 'Oceanic Planet',
-    rarity: 'Epic',
-    habitability: '78%',
-    energy: 'High',
-  }
-
-  const displayPlanet = preview || defaultPlanet
+  const currentPlanet = variations[previewIndex] || null
+  const currentImageUrl = currentPlanet?.image_url || ''
+  const generatedName = name || currentPlanet?.name || 'Unnamed World'
+  const rarity = currentPlanet?.rarity || 'Common'
+  const planetType = currentPlanet?.type || 'Terrestrial'
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'radial-gradient(circle at top, #4b1487 0%, #160022 45%, #050008 100%)',
-        color: 'white',
-        padding: '20px',
-        overflowX: 'hidden',
-        position: 'relative',
-      }}
-    >
+    <div className="relative min-h-screen bg-[#050008] text-white overflow-x-hidden">
       <SpaceBackground />
       <Navbar />
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 2.4fr 1fr',
-        gap: '22px',
-        alignItems: 'start',
-        marginTop: '80px',
-      }}>
-        {/* ===== LEFT PANEL ===== */}
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '20px', backdropFilter: 'blur(12px)', boxShadow: '0 0 30px rgba(170,80,255,0.25)' }}>
-          <h1 style={{ fontSize: '42px', lineHeight: '44px', fontWeight: '900', marginBottom: '12px', background: 'linear-gradient(to right,#bb6cff,#ffffff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            AI-DRIVEN<br />PLANET<br />GENESIS
-          </h1>
-          <p style={{ color: '#bba6d8', marginBottom: '20px', fontSize: '14px' }}>Describe it. Generate it. Own it.</p>
-
-          {connected ? (
-            <p style={{ color: '#bba6d8', marginBottom: '12px', fontSize: '13px' }}>
-              Free generations left: <span style={{ color: '#bb6cff' }}>{freeGenerations}</span>
-              {premium && <span style={{ color: '#67ff9d', marginLeft: '8px' }}>(Premium ♾️)</span>}
-            </p>
-          ) : (
-            <p style={{ color: '#bba6d8', marginBottom: '12px', fontSize: '13px' }}>Connect wallet to create planets.</p>
-          )}
-
-          <textarea
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            placeholder="A planet with crystal oceans, floating islands, purple skies..."
-            style={{ width: '100%', height: '140px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.25)', color: 'white', padding: '16px', resize: 'none', outline: 'none', fontSize: '14px', marginBottom: '18px' }}
-          />
-
-          {/* style selector */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
-            {['Cosmic', 'Realistic', 'Fantasy', 'Sci-Fi', 'Abstract'].map(style => (
-              <div
-                key={style}
-                onClick={() => setSelectedStyle(style)}
-                style={{
-                  padding: '10px 16px', borderRadius: '999px',
-                  background: selectedStyle === style ? 'linear-gradient(90deg,#7b2cff,#ff61d8)' : 'rgba(255,255,255,0.08)',
-                  fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                  transition: 'background 0.2s',
-                }}
-              >
-                {style}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '22px' }}>
-            {[['Name', preview ? preview.name : '—'], ['Type', preview ? preview.type : '—'], ['Rarity', preview ? preview.rarity : '—'], ['Habitability', preview ? preview.habitability : '—'], ['Energy', preview ? preview.energy : '—']].map((item, idx) => (
-              <div key={idx} style={{ background: 'rgba(255,255,255,0.06)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ color: '#bda7dd', fontSize: '11px', marginBottom: '4px' }}>{item[0]}</div>
-                <div style={{ fontWeight: '700', fontSize: '14px' }}>{item[1]}</div>
-              </div>
-            ))}
-          </div>
-
-          <button onClick={handleGenerate} disabled={loading} style={{ width: '100%', padding: '18px', border: 'none', borderRadius: '18px', background: loading ? 'gray' : 'linear-gradient(90deg,#9b3dff,#3cc8ff)', color: 'white', fontWeight: '800', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 0 25px rgba(131,88,255,0.5)', opacity: loading ? 0.7 : 1 }}>
-            {loading ? 'Generating...' : 'Generate Planet'}
-          </button>
-        </div>
-
-        {/* ===== CENTER PLANET ===== */}
-        <div>
-          <div style={{ position: 'relative', height: '760px', borderRadius: '32px', overflow: 'hidden', background: 'radial-gradient(circle at center,#6d1bb8 0%,#26003f 60%,#140021 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 50px rgba(174,82,255,0.3)' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(white 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.25 }} />
-
-            <img
-              src={displayPlanet.image}
-              alt="planet"
-              style={{
-                position: 'absolute', width: '520px', height: '520px', objectFit: 'cover', borderRadius: '50%',
-                top: '48%', left: '50%', transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-                boxShadow: '0 0 90px rgba(173,73,255,0.9)', transition: 'transform 0.4s ease',
-              }}
-            />
-
-            <div style={{ position: 'absolute', width: '720px', height: '220px', border: '8px solid rgba(255,220,255,0.8)', borderRadius: '50%', top: '49%', left: '50%', transform: 'translate(-50%, -50%) rotate(-10deg)', boxShadow: '0 0 30px rgba(255,255,255,0.3)' }} />
-            <div style={{ position: 'absolute', width: '760px', height: '240px', border: '3px solid rgba(255,255,255,0.35)', borderRadius: '50%', top: '49%', left: '50%', transform: 'translate(-50%, -50%) rotate(-10deg)' }} />
-
-            {/* 360° controls */}
-            <div style={{ position: 'absolute', bottom: '28px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '20px', background: 'rgba(0,0,0,0.45)', padding: '12px 28px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', fontWeight: '700', userSelect: 'none' }}>
-              <span onClick={rotateLeft} style={{ cursor: 'pointer' }}>◀</span>
-              <span>360°</span>
-              <span onClick={rotateRight} style={{ cursor: 'pointer' }}>▶</span>
-            </div>
-          </div>
-
-          {/* ===== AI GENERATION RESULTS (CAROUSEL) ===== */}
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ marginBottom: '14px', color: '#d8c7ff', fontWeight: '700', fontSize: '15px' }}>
-              AI Generation Results
-            </div>
-            <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
-              {variations.length > 0 ? (
-                variations.map((variation, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      setPreview({
-                        image_url: variation.image_url,
-                        style_signature: variation.style_signature,
-                        name: preview?.name || 'Generated Planet',
-                        type: preview?.type || 'Terrestrial',
-                        rarity: preview?.rarity || 'Common',
-                        habitability: preview?.habitability || 'N/A',
-                        energy: preview?.energy || 'N/A',
-                      })
-                    }}
-                    style={{
-                      minWidth: '150px',
-                      height: '150px',
-                      borderRadius: '22px',
-                      overflow: 'hidden',
-                      border: preview?.image_url === variation.image_url ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.05)',
-                      cursor: 'pointer',
-                      transition: 'border 0.2s',
-                    }}
-                  >
-                    <img src={variation.image_url} alt={`variation ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))
-              ) : (
-                // Default sample planets when nothing generated yet
-                ['/aurum-prime.png', '/verdantia.png', '/thalassaris.png', '/ignis-vex.png', '/terranova-prime.png'].map((img, i) => (
-                  <div key={i} style={{ minWidth: '150px', height: '150px', borderRadius: '22px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)' }}>
-                    <img src={img} alt={`default ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ===== RIGHT PANEL ===== */}
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '20px', backdropFilter: 'blur(12px)', boxShadow: '0 0 30px rgba(170,80,255,0.25)' }}>
-          {/* tabs */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            {['Overview', 'Attributes', 'History'].map(tab => (
-              <div
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '10px 14px', borderRadius: '999px',
-                  background: activeTab === tab ? 'linear-gradient(90deg,#7a39ff,#ff5ed6)' : 'rgba(255,255,255,0.06)',
-                  fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'background 0.2s',
-                }}
-              >
-                {tab}
-              </div>
-            ))}
-          </div>
-
-          {activeTab === 'Overview' && (
-            <>
-              <h3 style={{ marginBottom: '16px', fontSize: '22px' }}>{preview ? 'Your Generated Planet' : 'Preview'}</h3>
-              <img src={displayPlanet.image} alt="planet" style={{ width: '100%', borderRadius: '22px', marginBottom: '20px' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '28px' }}>
-                {[['Name', preview ? preview.name : defaultPlanet.name], ['Type', preview ? preview.type : defaultPlanet.type], ['Rarity', preview ? preview.rarity : defaultPlanet.rarity], ['Habitability', preview ? preview.habitability : defaultPlanet.habitability], ['Energy', preview ? preview.energy : defaultPlanet.energy]].map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                    <span style={{ color: '#bca5dc' }}>{item[0]}</span>
-                    <span style={{ fontWeight: '700', color: item[0]==='Rarity'?'#ff74ff':item[0]==='Habitability'?'#67ff9d':'white' }}>{item[1]}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginBottom: '26px' }}>
-                <div style={{ marginBottom: '16px', fontWeight: '700' }}>Special Traits</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {['Crystal Oceans','Floating Islands','Aurora Sky','Energy Ring','Star Core','Bio Glow'].map(trait => (
-                    <div key={trait} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: '14px', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}>✦<br />{trait}</div>
+      <main className="pt-20 px-4 md:px-8 pb-20">
+        {/* DISCOVERY MODE */}
+        {!discoveryComplete && !loading && (
+          <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+              <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
+                DISCOVER A NEW WORLD
+              </h1>
+              <p className="text-gray-400">Describe the planet you wish existed.</p>
+              <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="A dark planet with crystal oceans..." className="w-full h-36 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+              <div>
+                <p className="text-sm text-gray-400 mb-2">Art Style</p>
+                <div className="flex flex-wrap gap-2">
+                  {ART_STYLES.map(style => (
+                    <button key={style} onClick={() => setSelectedStyle(style)} className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedStyle === style ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-lg' : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10'}`}>{style}</button>
                   ))}
                 </div>
               </div>
-              <button onClick={handleSave} disabled={!preview} style={{ width: '100%', padding: '20px', border: 'none', borderRadius: '20px', background: preview ? 'linear-gradient(90deg,#3aa8ff,#ff4fd8)' : 'gray', color: 'white', fontWeight: '900', fontSize: '18px', cursor: preview ? 'pointer' : 'not-allowed', boxShadow: preview ? '0 0 30px rgba(125,87,255,0.45)' : 'none', opacity: preview ? 1 : 0.6 }}>
-                {preview ? 'Mint Planet 🚀' : 'Generate a planet first'}
-              </button>
-            </>
-          )}
+              <div>
+                <p className="text-sm text-gray-400 mb-2">Universe Creativity</p>
+                <div className="flex items-center gap-3">
+                  {CREATIVITY_LEVELS.map(level => (
+                    <button key={level} onClick={() => setCreativity(level)} className={`px-4 py-2 rounded-full text-sm font-medium transition ${creativity === level ? 'bg-purple-600/30 border border-purple-500 text-purple-300' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'}`}>{level}</button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {creativity === 'Strict' && 'Follows your prompt closely.'}
+                  {creativity === 'Balanced' && 'Mixes your idea with the universe.'}
+                  {creativity === 'Creative' && 'Allows the universe to surprise you.'}
+                </p>
+              </div>
+              <p className="text-sm text-gray-400">{connected ? <>Free discoveries left: <span className="text-purple-300">{freeGenerations}</span>{premium && <span className="ml-2 text-green-300">(Premium ∞)</span>}</> : 'Connect wallet to discover.'}</p>
+              <button onClick={handleGenerate} disabled={loading} className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition disabled:opacity-50">Generate Planet</button>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center space-y-6">
+              <div className="relative w-64 h-64 md:w-96 md:h-96">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/10 to-cyan-500/5 border border-white/10 backdrop-blur-md animate-pulse" />
+                <div className="absolute inset-0 rounded-full border-2 border-dashed border-purple-400/20 animate-spin-slow" />
+                <div className="absolute inset-8 rounded-full border border-cyan-400/10 animate-spin-slower" />
+                <div className="absolute inset-20 bg-gradient-to-br from-purple-600/20 to-transparent rounded-full flex items-center justify-center">
+                  <span className="text-6xl opacity-30">🪐</span>
+                </div>
+              </div>
+              <p className="text-gray-400 italic">No planet discovered yet.</p>
+            </motion.div>
+          </div>
+        )}
 
-          {activeTab === 'Attributes' && (
-            <div style={{ padding: '10px 0' }}>
-              <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>Detailed Attributes</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {[['Climate','Temperate'],['Resources','Crystal + Energy'],['Moons','2'],['Age','4.2B yrs'],['Diameter','48,000 km'],['Population','2.1B']].map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                    <span style={{ color: '#bca5dc' }}>{item[0]}</span>
-                    <span style={{ fontWeight: '700' }}>{item[1]}</span>
-                  </div>
+        {/* LOADING */}
+        {loading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+            <div className="space-y-2 text-center max-w-md">
+              {LOADING_SENTENCES.map((s, i) => (
+                <motion.p key={i} initial={{ opacity: 0, y: 10 }} animate={i <= loadingStep ? { opacity: 1, y: 0 } : {}} className={`text-lg ${i === loadingStep ? 'text-purple-300 font-semibold' : 'text-gray-500'}`}>{s}</motion.p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* DISCOVERY COMPLETE */}
+        {discoveryComplete && !loading && (
+          <div className="max-w-7xl mx-auto space-y-10">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="relative flex flex-col items-center">
+                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 20 }} className="relative w-80 h-80 md:w-96 md:h-96">
+                  <img src={currentImageUrl} alt="Discovered planet" className="w-full h-full object-cover rounded-full border-4 border-purple-500/30 shadow-[0_0_60px_rgba(168,85,247,0.4)] animate-float" />
+                  <div className="absolute inset-0 rounded-full border-2 border-purple-400/20 animate-spin-slow" />
+                </motion.div>
+                <div className="mt-4 text-center">
+                  {!showRarityText ? (
+                    <div className="flex gap-1 justify-center">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <motion.span key={i} initial={{ opacity: 0, scale: 0 }} animate={i < rarityRevealStep ? { opacity: 1, scale: 1 } : {}} className="text-2xl">★</motion.span>
+                      ))}
+                    </div>
+                  ) : (
+                    <motion.p initial={{ scale: 0, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{rarity}</motion.p>
+                  )}
+                </div>
+                <div className="mt-6 w-full max-w-md space-y-3">
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Name your planet..." className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Add a short description (optional)..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                </div>
+              </div>
+              <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="glass p-6 rounded-2xl border border-white/10 space-y-4">
+                <h2 className="text-2xl font-bold text-gradient">PLANET PASSPORT</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {[['Name', generatedName], ['Planet DNA', currentPlanet?.dna], ['Universe Sector', 'NGC-224'], ['Discovery Time', new Date().toLocaleString()], ['Discovered By', connected ? account.slice(0, 6) + '...' : 'Unknown'], ['Generation #', '1'], ['Seed', currentPlanet?.seed]].map(([label, value], idx) => (
+                    <div key={idx} className="flex justify-between border-b border-white/5 pb-1"><span className="text-gray-400">{label}</span><span className="font-medium">{value}</span></div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-6 rounded-2xl border border-white/10 space-y-4">
+              <h3 className="text-xl font-semibold text-purple-300">Official Traits</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
+                {[['Planet Type', currentPlanet?.type], ['Surface', currentPlanet?.surface], ['Atmosphere', currentPlanet?.atmosphere], ['Gravity', currentPlanet?.gravity], ['Temperature', currentPlanet?.temperature], ['Moons', currentPlanet?.moons], ['Rings', currentPlanet?.rings], ['Dominant Color', currentPlanet?.dominant_color], ['Star System', currentPlanet?.star_system], ['Civilization Potential', currentPlanet?.civilization_potential], ['Energy Signature', currentPlanet?.energy_signature], ['Rarity', currentPlanet?.rarity]].map(([label, value], idx) => (
+                  <div key={idx} className="bg-white/5 rounded-xl p-3 border border-white/5"><p className="text-xs text-gray-400">{label}</p><p className="font-semibold">{value}</p></div>
                 ))}
               </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass p-6 rounded-2xl border border-white/10">
+              <h3 className="text-xl font-semibold text-purple-300 mb-3">AI Interpretation</h3>
+              <p className="text-gray-300 leading-relaxed">The universe interpreted your inspiration as a {currentPlanet?.type?.toLowerCase()} world with {currentPlanet?.surface?.toLowerCase()} surface, orbiting a {currentPlanet?.star_system?.toLowerCase()}. Its {currentPlanet?.atmosphere?.toLowerCase()} atmosphere gives it a {currentPlanet?.dominant_color?.toLowerCase()} hue. {currentPlanet?.moons} moons accompany this {currentPlanet?.rarity?.toLowerCase()} discovery.</p>
+            </motion.div>
+            {variations.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-4">
+                <h3 className="text-xl font-semibold text-purple-300">Planet Gallery</h3>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {variations.map((v, i) => (
+                    <div key={i} onClick={() => setPreviewIndex(i)} className={`flex-shrink-0 w-32 h-32 rounded-2xl overflow-hidden border-2 cursor-pointer transition ${i === previewIndex ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'border-white/10 hover:border-white/30'}`}>
+                      <img src={v.image_url} alt={`Var ${i+1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button onClick={handleGenerate} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition">Generate Again</button>
+              <button onClick={handleSave} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition">Mint Planet 🚀</button>
+              <button onClick={handleDiscard} className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition">Discard</button>
             </div>
-          )}
-
-          {activeTab === 'History' && (
-            <div style={{ padding: '10px 0' }}>
-              <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>Planet History</h3>
-              <p style={{ color: '#bba6d8', fontSize: '14px', lineHeight: '1.6' }}>
-                Discovered during the Great Cosmic Expansion, this world has witnessed the rise and fall
-                of ancient stellar civilizations. Its surface bears the marks of cosmic storms and deep‑space
-                migrations that shaped the modern galaxy.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Payment Modal */}
+          </div>
+        )}
+      </main>
+      {/* Payment Modal (unchanged) */}
       <AnimatePresence>
         {showPayment && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowPayment(false)}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}
-              className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center border border-white/10"
-              onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-bold mb-2">Unlock Advanced AI Generation</h3>
-              <p className="text-gray-300 mb-4">One‑time ${PREMIUM_PRICE_USD} USD for unlimited planets forever.</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowPayment(false)}>
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center border border-white/10" onClick={e => e.stopPropagation()}>
+              <h3 className="text-2xl font-bold mb-2">Unlock Advanced Discovery</h3>
+              <p className="text-gray-300 mb-4">One‑time ${PREMIUM_PRICE_USD} USD for unlimited discoveries.</p>
               <div className="flex justify-center gap-4 mt-6">
-                <button onClick={() => handleUnlockPremium('SOL')} style={{ padding: '14px 28px', borderRadius: '999px', background: 'linear-gradient(90deg,#7b2cff,#ff61d8)', color: 'white', fontWeight: '800', fontSize: '14px', border: 'none', cursor: 'pointer' }}>Pay with SOL</button>
-                <button onClick={() => handleUnlockPremium('USDC')} style={{ padding: '14px 28px', borderRadius: '999px', background: 'linear-gradient(90deg,#3aa8ff,#4fd8ff)', color: 'white', fontWeight: '800', fontSize: '14px', border: 'none', cursor: 'pointer' }}>Pay with USDC</button>
+                <button onClick={() => handleUnlockPremium('SOL')} className="px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold">Pay with SOL</button>
+                <button onClick={() => handleUnlockPremium('USDC')} className="px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold">Pay with USDC</button>
               </div>
             </motion.div>
           </motion.div>
