@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, Planet
-from services.universe_engine import discover_planet    # <-- new engine
+from services.universe_engine import discover_planet
 from services.lineage_service import check_derivative
 from services.security import check_cooldown, check_abuse
 import uuid
 
 planet_bp = Blueprint('planet', __name__)
 
-# ---------- GENERATE endpoint ----------
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
     wallet_address = request.headers.get('X-User-Id')
@@ -20,7 +19,8 @@ def generate():
             wallet_address=wallet_address,
             nonce=str(uuid.uuid4()),
             verification_status='none',
-            free_generations_used=0
+            free_discoveries_used=0,
+            paid_discoveries_available=0
         )
         db.session.add(user)
         db.session.commit()
@@ -32,53 +32,46 @@ def generate():
 
     data = request.get_json()
     prompt = data.get('prompt', '')
-    num_samples = data.get('num_samples', 5)
 
-    # Check generation eligibility
-    if user.free_generations_used < 3:
-        user.free_generations_used += 1
+    # Discovery eligibility
+    if user.free_discoveries_used < 3:
+        user.free_discoveries_used += 1
         db.session.commit()
-        cost = 0
-    elif user.has_premium_generation:
-        cost = 0
+    elif user.paid_discoveries_available > 0:
+        user.paid_discoveries_available -= 1
+        db.session.commit()
     else:
-        return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
+        return jsonify({'error': 'payment_required', 'message': 'No free discoveries remaining. Unlock another expedition for 0.002 SOL.'}), 402
 
-    # Discovery via universe engine – returns a list of complete planet dictionaries
-    planets = discover_planet(prompt, num_samples)
-    if not planets or len(planets) == 0:
+    # Discover ONE planet
+    planet_data = discover_planet(prompt)
+    if not planet_data:
         return jsonify({'error': 'Discovery failed'}), 500
 
-    # Convert to a frontend-friendly format
-    results = []
-    for p in planets:
-        results.append({
-            "image_url": p["image_url"],
-            "style_signature": p["style_signature"],
-            "name": p["name"],
-            "dna": p["dna"],
-            "seed": p["seed"],
-            "type": p["type"],
-            "atmosphere": p["atmosphere"],
-            "surface": p["surface"],
-            "gravity": p["gravity"],
-            "temperature": p["temperature"],
-            "moons": p["moons"],
-            "rings": p["rings"],
-            "star_system": p["star_system"],
-            "dominant_color": p["dominant_color"],
-            "civilization_potential": p["civilization_potential"],
-            "energy_signature": p["energy_signature"],
-            "rarity": p["rarity"],
-        })
+    return jsonify({
+        'planet': {
+            "image_url": planet_data["image_url"],
+            "style_signature": planet_data["style_signature"],
+            "name": planet_data["name"],
+            "dna": planet_data["dna"],
+            "seed": planet_data["seed"],
+            "type": planet_data["type"],
+            "atmosphere": planet_data["atmosphere"],
+            "surface": planet_data["surface"],
+            "gravity": planet_data["gravity"],
+            "temperature": planet_data["temperature"],
+            "moons": planet_data["moons"],
+            "rings": planet_data["rings"],
+            "star_system": planet_data["star_system"],
+            "dominant_color": planet_data["dominant_color"],
+            "civilization_potential": planet_data["civilization_potential"],
+            "energy_signature": planet_data["energy_signature"],
+            "rarity": planet_data["rarity"],
+        }
+    })
 
-    return jsonify({'variations': results})
-
-
-# ---------- SAVE endpoint (unchanged) ----------
 @planet_bp.route('/save', methods=['POST'])
 def save_planet():
-    """Saves the planet with a name and description provided by the user."""
     wallet_address = request.headers.get('X-User-Id')
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -98,17 +91,16 @@ def save_planet():
     if not name:
         return jsonify({'error': 'Planet name is required'}), 400
 
-    # Check derivative lineage
     derivative_root, similarity = check_derivative(style_sig) if style_sig else (None, 0)
 
     planet = Planet(
         creator_id=user.id,
         name=name,
         description=description,
-        image_ipfs_hash=image_url,          # store the direct URL
+        image_ipfs_hash=image_url,
         style_signature=style_sig,
-        rarity='common',                    # will be updated from metadata if needed
-        planet_type='terrestrial',          # placeholder
+        rarity='common',
+        planet_type='terrestrial',
         generation_number=1,
         derivative_root_id=derivative_root
     )
@@ -117,7 +109,7 @@ def save_planet():
 
     if derivative_root:
         from services.reward_engine import create_reward_pool
-        create_reward_pool(planet.id, 0)   # cost was already handled during generation
+        create_reward_pool(planet.id, 0)
 
     return jsonify({
         'planet_id': str(planet.id),
