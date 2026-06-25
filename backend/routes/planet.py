@@ -1,15 +1,13 @@
-# backend/routes/planet.py
 from flask import Blueprint, request, jsonify
 from models import db, User, Planet
-from services.ai_service import generate_planet_images, extract_style_signature
+from services.universe_engine import discover_planet    # <-- new engine
 from services.lineage_service import check_derivative
 from services.security import check_cooldown, check_abuse
 import uuid
 
 planet_bp = Blueprint('planet', __name__)
 
-# No fallback image – if generation fails we return an error
-
+# ---------- GENERATE endpoint ----------
 @planet_bp.route('/generate', methods=['POST'])
 def generate():
     wallet_address = request.headers.get('X-User-Id')
@@ -46,23 +44,38 @@ def generate():
     else:
         return jsonify({'error': 'premium_required', 'message': 'Please unlock Advanced AI Generation ($7.99 one-time) to continue.'}), 402
 
-    # Generate multiple planet images – returns a list of URLs or None
-    images = generate_planet_images(prompt, num_samples)
-    if not images or len(images) == 0:
-        return jsonify({'error': 'AI generation failed'}), 500
+    # Discovery via universe engine – returns a list of complete planet dictionaries
+    planets = discover_planet(prompt, num_samples)
+    if not planets or len(planets) == 0:
+        return jsonify({'error': 'Discovery failed'}), 500
 
-    # For each image, extract a style signature
+    # Convert to a frontend-friendly format
     results = []
-    for img_url in images:
-        style_sig = extract_style_signature(img_url)
+    for p in planets:
         results.append({
-            'image_url': img_url,
-            'style_signature': style_sig
+            "image_url": p["image_url"],
+            "style_signature": p["style_signature"],
+            "name": p["name"],
+            "dna": p["dna"],
+            "seed": p["seed"],
+            "type": p["type"],
+            "atmosphere": p["atmosphere"],
+            "surface": p["surface"],
+            "gravity": p["gravity"],
+            "temperature": p["temperature"],
+            "moons": p["moons"],
+            "rings": p["rings"],
+            "star_system": p["star_system"],
+            "dominant_color": p["dominant_color"],
+            "civilization_potential": p["civilization_potential"],
+            "energy_signature": p["energy_signature"],
+            "rarity": p["rarity"],
         })
 
     return jsonify({'variations': results})
 
 
+# ---------- SAVE endpoint (unchanged) ----------
 @planet_bp.route('/save', methods=['POST'])
 def save_planet():
     """Saves the planet with a name and description provided by the user."""
@@ -94,8 +107,8 @@ def save_planet():
         description=description,
         image_ipfs_hash=image_url,          # store the direct URL
         style_signature=style_sig,
-        rarity='common',
-        planet_type='terrestrial',
+        rarity='common',                    # will be updated from metadata if needed
+        planet_type='terrestrial',          # placeholder
         generation_number=1,
         derivative_root_id=derivative_root
     )
