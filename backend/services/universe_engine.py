@@ -1,6 +1,7 @@
 import hashlib
 import random
 import datetime
+from flask import current_app
 from services.ai_service import generate_planet_images, extract_style_signature
 
 NAMES = [
@@ -22,7 +23,6 @@ def _seed_from_prompt(prompt: str) -> str:
     return hashlib.sha256(base.encode()).hexdigest()[:16]
 
 def discover_planet(prompt: str):
-    """Discover a single planet based on the user's prompt."""
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
         return None
@@ -30,7 +30,6 @@ def discover_planet(prompt: str):
     seed = _seed_from_prompt(prompt)
     rng = random.Random(seed)
 
-    # 1. Build metadata
     planet = {
         "seed": seed,
         "dna": seed.upper()[:12],
@@ -47,9 +46,12 @@ def discover_planet(prompt: str):
         "civilization_potential": rng.choice(["None", "Low", "Moderate", "High"]),
         "energy_signature": rng.choice(["Low", "Normal", "High", "Anomalous"]),
         "rarity": rng.choice(RARITIES),
+        # permanent coordinates
+        "coord_x": rng.randint(-8000, 8000),
+        "coord_y": rng.randint(-8000, 8000),
+        "coord_z": rng.randint(-8000, 8000),
     }
 
-    # 2. Craft the AI prompt
     ai_prompt = (
         f"cinematic 4K space art of a planet named {planet['name']}, "
         f"a {planet['type']} with {planet['surface'].lower()} surface, "
@@ -61,12 +63,10 @@ def discover_planet(prompt: str):
         f"astro photography, hyperrealistic, NASA style"
     )
 
-    # 3. Generate one image
-    image_urls = generate_planet_images(ai_prompt, 1)
-    if image_urls and len(image_urls) > 0:
-        planet["image_url"] = image_urls[0]
+    images = generate_planet_images(ai_prompt, 1)
+    if images and len(images) > 0:
+        planet["image_url"] = images[0]
     else:
-        # fallback only if API call completely fails (should not happen)
         planet["image_url"] = "https://i.ibb.co/ksmf765n/file-000000007a6471f4a9a08e6544335adb.png"
 
     planet["style_signature"] = extract_style_signature(planet["image_url"])
