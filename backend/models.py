@@ -39,10 +39,17 @@ class Planet(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_deleted = db.Column(db.Boolean, default=False)
 
-    # permanent coordinates inside the shared universe
+    # Permanent coordinates
     coord_x = db.Column(db.Integer, default=0)
     coord_y = db.Column(db.Integer, default=0)
     coord_z = db.Column(db.Integer, default=0)
+
+    # New fields for living universe
+    discovery_number = db.Column(db.Integer, nullable=True)        # sequential, unique
+    size_class = db.Column(db.String(20))                          # Tiny/Small/Medium/Large/Massive/Titan/Colossal
+    value_index = db.Column(db.Float, default=0.0)                 # 0-100
+    events = db.Column(db.String(255))                             # comma-separated events
+    rare_discovery = db.Column(db.String(100), nullable=True)      # e.g., "Ancient Civilization Detected"
 
 class TokenLedger(db.Model):
     __tablename__ = 'token_ledger'
@@ -92,3 +99,10 @@ class RewardAllocation(db.Model):
     amount = db.Column(db.Numeric(18,6))
     claimed = db.Column(db.Boolean, default=False)
     tx_hash = db.Column(db.String(66))
+
+class ExplorerAchievement(db.Model):
+    __tablename__ = 'explorer_achievements'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    wallet_address = db.Column(db.String(44), nullable=False)
+    achievement_name = db.Column(db.String(50), nullable=False)
+    unlocked_at = db.Column(db.DateTime, default=datetime.utcnow)
