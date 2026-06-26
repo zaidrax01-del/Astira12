@@ -1,6 +1,11 @@
 import axios from 'axios'
+
+// Hardcoded backend API base URL – update this if you change the backend service name on Render
+const API_BASE = 'https://astira12.onrender.com/api/v1'
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: API_BASE,
+  headers: { 'Content-Type': 'application/json' },
 })
+
 export default api
