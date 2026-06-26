@@ -9,7 +9,12 @@ class Config:
     PINATA_API_KEY = os.environ.get('PINATA_API_KEY', '')
     PINATA_SECRET_KEY = os.environ.get('PINATA_SECRET_KEY', '')
     PINATA_JWT = os.environ.get('PINATA_JWT', '')
-    TREASURY_WALLET = os.environ.get('TREASURY_WALLET', 'CvsGemPPo57RZuK7KFSvxn2VJqd5xhRHYWS5apQALdfN')
     IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/'
     FREE_GENERATIONS = 3
     COOLDOWN_SECONDS = 10
+    AST_MINT_COST = 50
+    AST_FUSION_COST = 120
+    DERIVATIVE_FEE_PERCENT = 0.15
+    MAX_LINEAGE_HOLDERS = 16
+    VOTE_CAP_PERCENT = 0.05
+    TREASURY_WALLET = os.environ.get('TREASURY_WALLET', '')
