@@ -17,9 +17,17 @@ const LOADING_SENTENCES = [
   'Discovering moons...', 'Scanning biosignatures...', 'Determining rarity...',
   'Rendering planet...', 'Planet stabilized.', 'Planet discovered.'
 ]
+const MINT_SENTENCES = [
+  "Recording Discovery...",
+  "Uploading Metadata...",
+  "Registering Planet...",
+  "Recording On Solana...",
+  "Planet Permanently Preserved...",
+  "Mint Complete."
+]
 
 export default function CreatePlanet() {
-  const { account, token, sendSolPayment, sendUsdcPayment } = useContext(Web3Context)
+  const { account, token, sendSolPayment } = useContext(Web3Context)
   const { connected } = useWallet()
   const { setVisible } = useWalletModal()
 
@@ -31,14 +39,19 @@ export default function CreatePlanet() {
   const [planetData, setPlanetData] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [freeDiscoveries, setFreeDiscoveries] = useState(3)        // remaining free
-  const [paidDiscoveries, setPaidDiscoveries] = useState(0)        // available paid ones
+  const [freeDiscoveries, setFreeDiscoveries] = useState(3)
+  const [paidDiscoveries, setPaidDiscoveries] = useState(0)
   const [showPayment, setShowPayment] = useState(false)
 
   const [loadingStep, setLoadingStep] = useState(-1)
   const loadingTimer = useRef(null)
   const [rarityRevealStep, setRarityRevealStep] = useState(0)
   const [showRarityText, setShowRarityText] = useState(false)
+
+  // Mint cinematic state
+  const [minting, setMinting] = useState(false)
+  const [mintStep, setMintStep] = useState(0)
+  const mintTimer = useRef(null)
 
   // Fetch user status on mount
   useEffect(() => {
@@ -65,7 +78,7 @@ export default function CreatePlanet() {
     if (freeDiscoveries > 0 || paidDiscoveries > 0) {
       startDiscovery()
     } else {
-      setShowPayment(true)   // no free, no paid → show payment modal
+      setShowPayment(true)
     }
   }
 
@@ -116,7 +129,7 @@ export default function CreatePlanet() {
     setLoadingStep(-1)
     setDiscoveryComplete(true)
 
-    // Update local counters (backend will also update)
+    // Update local counters
     if (freeDiscoveries > 0) {
       setFreeDiscoveries(prev => prev - 1)
     } else if (paidDiscoveries > 0) {
@@ -137,28 +150,55 @@ export default function CreatePlanet() {
     }, 500)
   }
 
-  // ── Save / Discard ──
-  const handleSave = async () => {
+  // ── Cinematic Mint ──
+  const handleMint = async () => {
     if (!planetData) return
     if (!name.trim()) { alert('Please name your planet.'); return }
-    setLoading(true)
-    try {
-      await api.post('/planet/save', {
-        image_url: planetData.image_url,
-        name,
-        description,
-        style_signature: planetData.style_signature,
-      }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
-      alert('Planet saved to your Cosmic Compass!')
-      setDiscoveryComplete(false)
-      setPlanetData(null)
-      setName('')
-      setDescription('')
-      setPrompt('')
-    } catch (err) { alert('Failed to save.') }
-    setLoading(false)
+    setMinting(true)
+    setMintStep(0)
+
+    // Start minting animation
+    let step = 0
+    mintTimer.current = setInterval(() => {
+      step++
+      if (step < MINT_SENTENCES.length - 1) {
+        setMintStep(step)
+      } else {
+        clearInterval(mintTimer.current)
+      }
+    }, 1200)
+
+    // Wait for animation to finish, then call save endpoint
+    setTimeout(async () => {
+      try {
+        await api.post('/planet/save', {
+          image_url: planetData.image_url,
+          name,
+          description,
+          style_signature: planetData.style_signature,
+        }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
+        // Show final mint step
+        setMintStep(MINT_SENTENCES.length - 1)
+        setTimeout(() => {
+          setMinting(false)
+          setMintStep(0)
+          alert('Planet minted successfully!')
+          setDiscoveryComplete(false)
+          setPlanetData(null)
+          setName('')
+          setDescription('')
+          setPrompt('')
+        }, 1500)
+      } catch (err) {
+        clearInterval(mintTimer.current)
+        setMinting(false)
+        setMintStep(0)
+        alert('Failed to mint planet.')
+      }
+    }, 1200 * MINT_SENTENCES.length)
   }
 
+  // ── Discard ──
   const handleDiscard = () => {
     setDiscoveryComplete(false)
     setPlanetData(null)
@@ -173,11 +213,9 @@ export default function CreatePlanet() {
     try {
       const signature = await sendSolPayment(COST_PER_DISCOVERY_SOL)
       if (!signature) throw new Error('Payment failed')
-      // Tell backend to grant a paid discovery
       await api.post('/payment/purchase-discovery', { signature }, {
         headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
       })
-      // Increment local paid balance and then discover
       setPaidDiscoveries(prev => prev + 1)
       startDiscovery()
     } catch (err) {
@@ -197,7 +235,7 @@ export default function CreatePlanet() {
       <Navbar />
       <main className="pt-20 px-4 md:px-8 pb-20">
         {/* ---------- DISCOVERY FORM (no planet yet) ---------- */}
-        {!discoveryComplete && !loading && (
+        {!discoveryComplete && !loading && !minting && (
           <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
@@ -262,15 +300,106 @@ export default function CreatePlanet() {
           </motion.div>
         )}
 
+        {/* ---------- CINEMATIC MINT ---------- */}
+        {minting && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+            <div className="space-y-2 text-center max-w-md">
+              {MINT_SENTENCES.map((s, i) => (
+                <motion.p key={i} initial={{ opacity: 0, y: 10 }} animate={i <= mintStep ? { opacity: 1, y: 0 } : {}} className={`text-lg ${i === mintStep ? 'text-purple-300 font-semibold' : 'text-gray-500'}`}>{s}</motion.p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* ---------- DISCOVERY COMPLETE ---------- */}
-        {discoveryComplete && !loading && planetData && (
+        {discoveryComplete && !loading && !minting && planetData && (
           <div className="max-w-4xl mx-auto space-y-10">
-            {/* ... same planet preview, passport, traits, interpretation ... (unchanged from previous single-planet layout) ... */}
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="relative flex flex-col items-center">
+                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 20 }} className="relative w-80 h-80 md:w-96 md:h-96">
+                  <img src={currentImageUrl} alt="Discovered planet" className="w-full h-full object-cover rounded-full border-4 border-purple-500/30 shadow-[0_0_60px_rgba(168,85,247,0.4)] animate-float" />
+                  <div className="absolute inset-0 rounded-full border-2 border-purple-400/20 animate-spin-slow" />
+                </motion.div>
+                <div className="mt-4 text-center">
+                  {!showRarityText ? (
+                    <div className="flex gap-1 justify-center">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <motion.span key={i} initial={{ opacity: 0, scale: 0 }} animate={i < rarityRevealStep ? { opacity: 1, scale: 1 } : {}} className="text-2xl">★</motion.span>
+                      ))}
+                    </div>
+                  ) : (
+                    <motion.p initial={{ scale: 0, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{rarity}</motion.p>
+                  )}
+                </div>
+                <div className="mt-6 w-full max-w-md space-y-3">
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Name your planet..." className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Add a short description (optional)..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                </div>
+              </div>
+              <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="glass p-6 rounded-2xl border border-white/10 space-y-4">
+                <h2 className="text-2xl font-bold text-gradient">PLANET PASSPORT</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {[
+                    ['Name', generatedName],
+                    ['Discovery #', planetData?.discovery_number],
+                    ['Planet DNA', planetData?.dna],
+                    ['Size', planetData?.size_class],
+                    ['Value Index', `${planetData?.value_index}/100`],
+                    ['Universe Sector', 'NGC-224'],
+                    ['Discovery Time', new Date().toLocaleString()],
+                    ['Discovered By', connected ? account.slice(0, 6) + '...' : 'Unknown'],
+                    ['Generation #', '1'],
+                    ['Seed', planetData?.seed],
+                    ['Events', planetData?.events || 'None'],
+                    ['Rare Discovery', planetData?.rare_discovery || 'None']
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="flex justify-between border-b border-white/5 pb-1">
+                      <span className="text-gray-400">{label}</span>
+                      <span className="font-medium">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-6 rounded-2xl border border-white/10 space-y-4">
+              <h3 className="text-xl font-semibold text-purple-300">Official Traits</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
+                {[
+                  ['Planet Type', planetData?.type],
+                  ['Surface', planetData?.surface],
+                  ['Atmosphere', planetData?.atmosphere],
+                  ['Gravity', planetData?.gravity],
+                  ['Temperature', planetData?.temperature],
+                  ['Moons', planetData?.moons],
+                  ['Rings', planetData?.rings],
+                  ['Dominant Color', planetData?.dominant_color],
+                  ['Star System', planetData?.star_system],
+                  ['Civilization Potential', planetData?.civilization_potential],
+                  ['Energy Signature', planetData?.energy_signature],
+                  ['Rarity', planetData?.rarity]
+                ].map(([label, value], idx) => (
+                  <div key={idx} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                    <p className="text-xs text-gray-400">{label}</p>
+                    <p className="font-semibold">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass p-6 rounded-2xl border border-white/10">
+              <h3 className="text-xl font-semibold text-purple-300 mb-3">AI Interpretation</h3>
+              <p className="text-gray-300 leading-relaxed">
+                The universe interpreted your inspiration as a {planetData?.type?.toLowerCase()} world with {planetData?.surface?.toLowerCase()} surface, orbiting a {planetData?.star_system?.toLowerCase()}.
+                Its {planetData?.atmosphere?.toLowerCase()} atmosphere gives it a {planetData?.dominant_color?.toLowerCase()} hue.
+                {planetData?.moons} moons accompany this {planetData?.rarity?.toLowerCase()} discovery.
+                {planetData?.events ? ` Active events include: ${planetData.events}.` : ''}
+                {planetData?.rare_discovery ? ` ⚠️ ${planetData.rare_discovery}!` : ''}
+              </p>
+            </motion.div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button onClick={handleDiscover} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition">
                 Discover Another Planet
               </button>
-              <button onClick={handleSave} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition">
+              <button onClick={handleMint} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition">
                 Mint Planet 🚀
               </button>
               <button onClick={handleDiscard} className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition">
@@ -281,7 +410,7 @@ export default function CreatePlanet() {
         )}
       </main>
 
-      {/* ---------- Payment Modal (new exploration theme) ---------- */}
+      {/* ---------- Payment Modal ---------- */}
       <AnimatePresence>
         {showPayment && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowPayment(false)}>
