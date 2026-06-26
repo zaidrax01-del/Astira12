@@ -17,6 +17,18 @@ SURFACES = ["Rocky", "Icy", "Molten", "Crystal", "Metallic", "Dusty", "Oceanic",
 STAR_TYPES = ["Red Dwarf", "Blue Giant", "Binary Stars", "White Dwarf", "Neutron Star",
               "Pulsar", "Yellow Main Sequence"]
 RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
+SIZE_CLASSES = ["Tiny", "Small", "Medium", "Large", "Massive", "Titan", "Colossal"]
+EVENTS_POOL = [
+    "Crystal Storms", "Meteor Showers", "Solar Eclipse", "Aurora Activity",
+    "Magnetic Disturbance", "Acid Rain", "Frozen Winds", "Volcanic Activity",
+    "Radioactive Zones", "Calm Conditions"
+]
+RARE_DISCOVERIES = [
+    "Ancient Civilization Detected", "Unknown Transmission Received",
+    "Alien Ruins Found", "Living Planet", "Temporal Distortion",
+    "Planet Missing From Galactic Database", "Ancient Megastructure Detected",
+    "Unknown Energy Source"
+]
 
 def _seed_from_prompt(prompt: str) -> str:
     base = prompt + str(datetime.datetime.utcnow().timestamp())
@@ -30,6 +42,17 @@ def discover_planet(prompt: str):
     seed = _seed_from_prompt(prompt)
     rng = random.Random(seed)
 
+    size_class = rng.choice(SIZE_CLASSES)
+
+    # Size class affects gravity and temperature ranges
+    size_factors = {
+        "Tiny": (0.1, 0.3), "Small": (0.3, 0.6), "Medium": (0.6, 1.2),
+        "Large": (1.2, 2.0), "Massive": (2.0, 3.0), "Titan": (3.0, 4.5),
+        "Colossal": (4.5, 6.5)
+    }
+    grav_range = size_factors.get(size_class, (0.5, 1.5))
+    temp_range = (-200 + (grav_range[0] * 30), 100 + (grav_range[1] * 60))
+
     planet = {
         "seed": seed,
         "dna": seed.upper()[:12],
@@ -38,22 +61,33 @@ def discover_planet(prompt: str):
         "atmosphere": rng.choice(ATMOSPHERES),
         "surface": rng.choice(SURFACES),
         "star_system": rng.choice(STAR_TYPES),
-        "gravity": f"{rng.uniform(0.3, 3.0):.1f}g",
-        "temperature": f"{rng.randint(-200, 500)}°C",
+        "gravity": f"{rng.uniform(grav_range[0], grav_range[1]):.1f}g",
+        "temperature": f"{rng.randint(int(temp_range[0]), int(temp_range[1]))}°C",
         "moons": rng.randint(0, 12),
         "rings": rng.choice(["None", "Faint Ice Rings", "Dense Dust Rings", "Luminous Rings"]),
         "dominant_color": rng.choice(["Violet", "Cyan", "Crimson", "Emerald", "Amber", "Sapphire"]),
         "civilization_potential": rng.choice(["None", "Low", "Moderate", "High"]),
         "energy_signature": rng.choice(["Low", "Normal", "High", "Anomalous"]),
         "rarity": rng.choice(RARITIES),
-        # permanent coordinates
         "coord_x": rng.randint(-8000, 8000),
         "coord_y": rng.randint(-8000, 8000),
         "coord_z": rng.randint(-8000, 8000),
+        "size_class": size_class,
+        # Calculate value index (0-100)
+        "value_index": round(
+            (rng.uniform(0.1, 1.0) +  # rarity factor
+             (0.2 if planet["civilization_potential"] in ["Moderate", "High"] else 0) +
+             (0.15 if planet["moons"] > 3 else 0) +
+             (0.1 if planet["rings"] != "None" else 0) +
+             (0.1 if planet["energy_signature"] in ["High", "Anomalous"] else 0)) * 50, 1),
+        # Random events (0-3)
+        "events": ", ".join(rng.sample(EVENTS_POOL, rng.randint(0, 3))) if rng.randint(0, 1) else "",
+        # Very rare discoveries (2% chance)
+        "rare_discovery": rng.choice(RARE_DISCOVERIES) if rng.randint(1, 100) <= 2 else None,
     }
 
     ai_prompt = (
-        f"cinematic 4K space art of a planet named {planet['name']}, "
+        f"cinematic 4K space art of a {size_class.lower()} planet named {planet['name']}, "
         f"a {planet['type']} with {planet['surface'].lower()} surface, "
         f"{planet['atmosphere']} atmosphere, "
         f"gravity {planet['gravity']}, "
