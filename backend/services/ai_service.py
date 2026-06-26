@@ -6,17 +6,19 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-MODELS_LAB_URL = "https://modelslab.com/api/v8/images/text-to-image"
+GENERATE_URL = "https://modelslab.com/api/v8/images/text-to-image"
+FETCH_URL    = "https://modelslab.com/api/v8/images/fetch/{}"   # {} will be replaced by id
 TIMEOUT_SECONDS = 90
-MAX_RETRIES = 2
+POLL_INTERVAL = 3          # seconds between polls
+MAX_POLL_ATTEMPTS = 20     # total wait ≈ 60 seconds
 
 def generate_planet_images(prompt: str, num_samples: int = 1):
-    """Call ModelsLab v8 and return a list of image URLs."""
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
         logger.error("MODELS_LAB_API_KEY missing in configuration")
         return None
 
+    # 1. Submit generation job
     payload = {
         "model_id": "flux-2-dev",
         "prompt": prompt,
@@ -30,66 +32,77 @@ def generate_planet_images(prompt: str, num_samples: int = 1):
             "spaceships, animals, creatures, anything not a planet"
         ),
     }
-
     headers = {"Content-Type": "application/json"}
 
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            logger.info(f"ModelsLab request (attempt {attempt+1}): {prompt[:80]}...")
-            start = time.time()
-            resp = requests.post(MODELS_LAB_URL, headers=headers, json=payload, timeout=TIMEOUT_SECONDS)
-            elapsed = time.time() - start
-            logger.info(f"ModelsLab response {resp.status_code} in {elapsed:.1f}s")
+    try:
+        resp = requests.post(GENERATE_URL, headers=headers, json=payload, timeout=30)
+        if resp.status_code != 200:
+            logger.error(f"Generation request failed {resp.status_code}: {resp.text}")
+            return None
 
-            if resp.status_code == 200:
-                data = resp.json()
-                logger.info(f"ModelsLab response keys: {list(data.keys())}")
-                logger.info(f"Full response: {data}")
+        data = resp.json()
+        logger.info(f"Generation response keys: {list(data.keys())}")
 
-                # Try multiple possible keys for image URLs
-                images = None
-                for key in ["output", "data", "images", "results", "generated"]:
-                    if key in data:
-                        images = data[key]
-                        break
-
-                # If it's a string, wrap in list
+        # If images are directly returned (synchronous), use them
+        for key in ["output", "data", "images", "results"]:
+            if key in data:
+                images = data[key]
                 if isinstance(images, str):
-                    images = [images]
+                    return [images]
+                if isinstance(images, list):
+                    return images[:num_samples]
 
-                # If it's a dict with URLs
-                if isinstance(images, dict):
-                    if "url" in images:
-                        images = [images["url"]]
-                    elif "image_url" in images:
-                        images = [images["image_url"]]
+        # Async mode – we need to poll fetch_result
+        fetch_id = data.get("id")
+        if not fetch_id:
+            logger.error(f"No 'id' in response. Full data: {data}")
+            return None
 
-                if not images or len(images) == 0:
-                    logger.error(f"ModelsLab returned empty output. Keys: {list(data.keys())}")
+        logger.info(f"Async generation started, id: {fetch_id}")
+
+        # 2. Poll until images are ready
+        fetch_url = FETCH_URL.format(fetch_id)
+        for attempt in range(MAX_POLL_ATTEMPTS):
+            time.sleep(POLL_INTERVAL)
+            try:
+                poll_resp = requests.post(
+                    fetch_url,
+                    headers={"Content-Type": "application/json"},
+                    json={"key": api_key},
+                    timeout=30
+                )
+                if poll_resp.status_code != 200:
+                    logger.warning(f"Poll attempt {attempt+1}: HTTP {poll_resp.status_code}")
+                    continue
+
+                poll_data = poll_resp.json()
+                status = poll_data.get("status", "").lower()
+
+                if status == "success":
+                    images = poll_data.get("output") or poll_data.get("data") or poll_data.get("images")
+                    if images:
+                        if isinstance(images, str):
+                            return [images]
+                        if isinstance(images, list):
+                            return images[:num_samples]
                     return None
+                elif status in ("processing", "queued", "pending"):
+                    logger.info(f"Poll {attempt+1}: status={status}")
+                    continue
+                else:
+                    logger.warning(f"Unknown status '{status}'")
+            except Exception as e:
+                logger.error(f"Poll error: {e}")
 
-                logger.info(f"Generated {len(images)} image(s)")
-                return images[:num_samples]
+        logger.error(f"Timeout waiting for generation (id {fetch_id})")
+        return None
 
-            # Handle errors
-            logger.error(f"ModelsLab error {resp.status_code}: {resp.text}")
-            if resp.status_code == 429:
-                time.sleep(5)
-                continue
-            return None
-
-        except Exception as e:
-            logger.exception("ModelsLab unexpected error")
-            if attempt < MAX_RETRIES:
-                time.sleep(2)
-                continue
-            return None
-
-    return None
+    except Exception as e:
+        logger.exception("Unexpected error in generate_planet_images")
+        return None
 
 
 def generate_planet_image(prompt: str):
-    """Single image – used by fusion engine."""
     images = generate_planet_images(prompt, 1)
     if images and len(images) > 0:
         return images[0]
@@ -97,5 +110,4 @@ def generate_planet_image(prompt: str):
 
 
 def extract_style_signature(image_url: str):
-    """Mock style signature for lineage."""
     return [random.random() for _ in range(10)]
