@@ -35,6 +35,7 @@ def _seed_from_prompt(prompt: str) -> str:
     return hashlib.sha256(base.encode()).hexdigest()[:16]
 
 def discover_planet(prompt: str):
+    """Discover a single planet based on the user's prompt."""
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
         return None
@@ -44,7 +45,7 @@ def discover_planet(prompt: str):
 
     size_class = rng.choice(SIZE_CLASSES)
 
-    # Size class affects gravity and temperature ranges
+    # Gravity range based on size
     size_factors = {
         "Tiny": (0.1, 0.3), "Small": (0.3, 0.6), "Medium": (0.6, 1.2),
         "Large": (1.2, 2.0), "Massive": (2.0, 3.0), "Titan": (3.0, 4.5),
@@ -53,6 +54,7 @@ def discover_planet(prompt: str):
     grav_range = size_factors.get(size_class, (0.5, 1.5))
     temp_range = (-200 + (grav_range[0] * 30), 100 + (grav_range[1] * 60))
 
+    # Build the planet dictionary FIRST (without value_index)
     planet = {
         "seed": seed,
         "dna": seed.upper()[:12],
@@ -73,19 +75,20 @@ def discover_planet(prompt: str):
         "coord_y": rng.randint(-8000, 8000),
         "coord_z": rng.randint(-8000, 8000),
         "size_class": size_class,
-        # Calculate value index (0-100)
-        "value_index": round(
-            (rng.uniform(0.1, 1.0) +  # rarity factor
-             (0.2 if planet["civilization_potential"] in ["Moderate", "High"] else 0) +
-             (0.15 if planet["moons"] > 3 else 0) +
-             (0.1 if planet["rings"] != "None" else 0) +
-             (0.1 if planet["energy_signature"] in ["High", "Anomalous"] else 0)) * 50, 1),
-        # Random events (0-3)
         "events": ", ".join(rng.sample(EVENTS_POOL, rng.randint(0, 3))) if rng.randint(0, 1) else "",
-        # Very rare discoveries (2% chance)
         "rare_discovery": rng.choice(RARE_DISCOVERIES) if rng.randint(1, 100) <= 2 else None,
     }
 
+    # NOW calculate value_index (planet dict is fully built)
+    planet["value_index"] = round(
+        (rng.uniform(0.1, 1.0) +
+         (0.2 if planet["civilization_potential"] in ["Moderate", "High"] else 0) +
+         (0.15 if planet["moons"] > 3 else 0) +
+         (0.1 if planet["rings"] != "None" else 0) +
+         (0.1 if planet["energy_signature"] in ["High", "Anomalous"] else 0)) * 50, 1
+    )
+
+    # Craft the AI prompt
     ai_prompt = (
         f"cinematic 4K space art of a {size_class.lower()} planet named {planet['name']}, "
         f"a {planet['type']} with {planet['surface'].lower()} surface, "
@@ -97,6 +100,7 @@ def discover_planet(prompt: str):
         f"astro photography, hyperrealistic, NASA style"
     )
 
+    # Generate the image
     images = generate_planet_images(ai_prompt, 1)
     if images and len(images) > 0:
         planet["image_url"] = images[0]
