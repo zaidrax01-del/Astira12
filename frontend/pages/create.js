@@ -7,12 +7,9 @@ import SpaceBackground from '../components/animations/SpaceBackground'
 
 const ART_STYLES = ['Cosmic', 'Sci-Fi', 'Fantasy', 'Ancient', 'Realistic', 'Cinematic']
 const CREATIVITY_LEVELS = ['Strict', 'Balanced', 'Creative']
-const LOADING_SENTENCES = [
-  'Initializing Universe...', 'Reading imagination...', 'Analyzing cosmic patterns...',
-  'Forging Planet DNA...', 'Calculating gravity...', 'Generating atmosphere...',
-  'Discovering moons...', 'Scanning biosignatures...', 'Determining rarity...',
-  'Rendering planet...', 'Planet stabilized.', 'Planet discovered.'
-]
+
+// Fast, cinematic loading pulses (not long sentences)
+const LOADING_PULSES = ['◌', '◉', '◎', '◉', '◌']
 
 export default function CreatePlanet() {
   const [prompt, setPrompt] = useState('')
@@ -23,8 +20,7 @@ export default function CreatePlanet() {
   const [planetData, setPlanetData] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-
-  const [loadingStep, setLoadingStep] = useState(-1)
+  const [loadingPulse, setLoadingPulse] = useState(0)
   const loadingTimer = useRef(null)
   const [rarityRevealStep, setRarityRevealStep] = useState(0)
   const [showRarityText, setShowRarityText] = useState(false)
@@ -42,27 +38,19 @@ export default function CreatePlanet() {
     setRarityRevealStep(0)
     setShowRarityText(false)
     setLoading(true)
-    setLoadingStep(0)
+
+    // Pulse animation while waiting
+    let pulseIdx = 0
+    setLoadingPulse(0)
+    loadingTimer.current = setInterval(() => {
+      pulseIdx = (pulseIdx + 1) % LOADING_PULSES.length
+      setLoadingPulse(pulseIdx)
+    }, 300)
 
     try {
-      // Start loading animation
-      let step = 0
-      loadingTimer.current = setInterval(() => {
-        step++
-        if (step < LOADING_SENTENCES.length) setLoadingStep(step)
-      }, 800)
-
-      // Synchronous request – waits for complete response
       const resp = await api.post('/planet/generate', { prompt })
-
       clearInterval(loadingTimer.current)
-
-      // Show final loading step briefly
-      setLoadingStep(LOADING_SENTENCES.length - 1)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       setLoading(false)
-      setLoadingStep(-1)
 
       if (resp.data && resp.data.planet) {
         const finalResult = resp.data.planet
@@ -88,7 +76,6 @@ export default function CreatePlanet() {
     } catch (err) {
       clearInterval(loadingTimer.current)
       setLoading(false)
-      setLoadingStep(-1)
       alert('Discovery failed. Please try again.')
     }
   }
@@ -109,6 +96,7 @@ export default function CreatePlanet() {
       <SpaceBackground />
       <Navbar />
       <main className="pt-20 px-4 md:px-8 pb-20">
+        {/* ---------- DISCOVERY FORM ---------- */}
         {!discoveryComplete && !loading && (
           <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -143,36 +131,56 @@ export default function CreatePlanet() {
               </button>
             </motion.div>
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center space-y-6">
-              <div className="relative w-64 h-64 md:w-96 md:h-96">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/10 to-cyan-500/5 border border-white/10 backdrop-blur-md animate-pulse" />
-                <div className="absolute inset-0 rounded-full border-2 border-dashed border-purple-400/20 animate-spin-slow" />
-                <div className="absolute inset-8 rounded-full border border-cyan-400/10 animate-spin-slower" />
-                <div className="absolute inset-20 bg-gradient-to-br from-purple-600/20 to-transparent rounded-full flex items-center justify-center">
+              {/* Square placeholder with mad glow */}
+              <div className="relative w-64 h-64 md:w-96 md:h-96 rounded-2xl border-2 border-purple-500/30 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.3)] animate-pulse">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-cyan-500/5 backdrop-blur-md" />
+                <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-6xl opacity-30">🪐</span>
                 </div>
+                {/* Animated corner glows */}
+                <div className="absolute -top-1 -left-1 w-8 h-8 bg-purple-500/30 blur-xl animate-ping" />
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-cyan-500/30 blur-xl animate-ping" />
               </div>
               <p className="text-gray-400 italic">No planet discovered yet.</p>
             </motion.div>
           </div>
         )}
 
+        {/* ---------- CINEMATIC LOADING (pulse) ---------- */}
         {loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
-            <div className="space-y-2 text-center max-w-md">
-              {LOADING_SENTENCES.map((s, i) => (
-                <motion.p key={i} initial={{ opacity: 0, y: 10 }} animate={i <= loadingStep ? { opacity: 1, y: 0 } : {}} className={`text-lg ${i === loadingStep ? 'text-purple-300 font-semibold' : 'text-gray-500'}`}>{s}</motion.p>
-              ))}
-            </div>
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], rotate: [0, 10, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="text-7xl text-purple-400 mb-6"
+            >
+              {LOADING_PULSES[loadingPulse]}
+            </motion.div>
+            <p className="text-xl text-purple-200 font-semibold animate-pulse">Scanning the cosmos...</p>
           </motion.div>
         )}
 
+        {/* ---------- DISCOVERY COMPLETE ---------- */}
         {discoveryComplete && !loading && planetData && (
           <div className="max-w-4xl mx-auto space-y-10">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="relative flex flex-col items-center">
-                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 20 }} className="relative w-80 h-80 md:w-96 md:h-96">
-                  <img src={currentImageUrl} alt="Discovered planet" className="w-full h-full object-cover rounded-full border-4 border-purple-500/30 shadow-[0_0_60px_rgba(168,85,247,0.4)] animate-float" />
-                  <div className="absolute inset-0 rounded-full border-2 border-purple-400/20 animate-spin-slow" />
+                <motion.div
+                  initial={{ scale: 0, rotate: -10, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="relative w-80 h-80 md:w-96 md:h-96 rounded-2xl overflow-hidden border-4 border-purple-500/40 shadow-[0_0_80px_rgba(168,85,247,0.5)]"
+                >
+                  <motion.img
+                    src={currentImageUrl}
+                    alt="Discovered planet"
+                    className="w-full h-full object-cover"
+                    animate={{ scale: [1, 1.02, 1], rotate: [0, 1, -1, 0] }}
+                    transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+                  />
+                  {/* Corner glows */}
+                  <div className="absolute top-0 left-0 w-12 h-12 bg-purple-400/30 blur-xl" />
+                  <div className="absolute bottom-0 right-0 w-12 h-12 bg-cyan-400/30 blur-xl" />
                 </motion.div>
                 <div className="mt-4 text-center">
                   {!showRarityText ? (
