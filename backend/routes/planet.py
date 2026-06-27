@@ -8,81 +8,85 @@ import uuid
 import threading
 
 planet_bp = Blueprint('planet', __name__)
-
-# In‑memory store for async tasks (use Redis in production)
 task_store = {}
 
 def run_discovery(wallet_address, task_id, prompt):
-    """Background thread: runs the universe discovery and stores the result."""
-    try:
-        user = User.query.filter_by(wallet_address=wallet_address).first()
-        if not user:
-            task_store[task_id] = {'status': 'error', 'message': 'Explorer not found'}
-            return
+    """Runs in a background thread with its own DB session."""
+    from app import create_app
+    app = create_app()
+    with app.app_context():
+        try:
+            user = User.query.filter_by(wallet_address=wallet_address).first()
+            if not user:
+                task_store[task_id] = {'status': 'error', 'message': 'Explorer not found'}
+                return
 
-        # Decrement free/paid discoveries already done in the main route
-        planet_data = discover_planet(prompt)
-        if not planet_data:
-            task_store[task_id] = {'status': 'error', 'message': 'Discovery failed'}
-            return
+            # Decrement counters (already done in main route, but we re‑check)
+            if user.free_discoveries_used > 3 and user.paid_discoveries_available <= 0:
+                task_store[task_id] = {'status': 'error', 'message': 'No discoveries remaining'}
+                return
 
-        # Assign next discovery number
-        max_num = db.session.query(func.max(Planet.discovery_number)).scalar() or 0
-        discovery_number = max_num + 1
+            planet_data = discover_planet(prompt)
+            if not planet_data:
+                task_store[task_id] = {'status': 'error', 'message': 'Discovery failed'}
+                return
 
-        new_planet = Planet(
-            creator_id=user.id,
-            name=planet_data['name'],
-            description='',
-            image_ipfs_hash=planet_data['image_url'],
-            style_signature=planet_data['style_signature'],
-            rarity=planet_data['rarity'],
-            planet_type=planet_data['type'],
-            generation_number=1,
-            coord_x=planet_data['coord_x'],
-            coord_y=planet_data['coord_y'],
-            coord_z=planet_data['coord_z'],
-            discovery_number=discovery_number,
-            size_class=planet_data['size_class'],
-            value_index=planet_data['value_index'],
-            events=planet_data['events'],
-            rare_discovery=planet_data['rare_discovery']
-        )
-        db.session.add(new_planet)
-        db.session.commit()
+            max_num = db.session.query(func.max(Planet.discovery_number)).scalar() or 0
+            discovery_number = max_num + 1
 
-        task_store[task_id] = {
-            'status': 'complete',
-            'planet': {
-                "image_url": planet_data["image_url"],
-                "style_signature": planet_data["style_signature"],
-                "name": planet_data["name"],
-                "dna": planet_data["dna"],
-                "seed": planet_data["seed"],
-                "type": planet_data["type"],
-                "atmosphere": planet_data["atmosphere"],
-                "surface": planet_data["surface"],
-                "gravity": planet_data["gravity"],
-                "temperature": planet_data["temperature"],
-                "moons": planet_data["moons"],
-                "rings": planet_data["rings"],
-                "star_system": planet_data["star_system"],
-                "dominant_color": planet_data["dominant_color"],
-                "civilization_potential": planet_data["civilization_potential"],
-                "energy_signature": planet_data["energy_signature"],
-                "rarity": planet_data["rarity"],
-                "coord_x": planet_data["coord_x"],
-                "coord_y": planet_data["coord_y"],
-                "coord_z": planet_data["coord_z"],
-                "size_class": planet_data["size_class"],
-                "value_index": planet_data["value_index"],
-                "events": planet_data["events"],
-                "rare_discovery": planet_data["rare_discovery"],
-                "discovery_number": discovery_number,
+            new_planet = Planet(
+                creator_id=user.id,
+                name=planet_data['name'],
+                description='',
+                image_ipfs_hash=planet_data['image_url'],
+                style_signature=planet_data['style_signature'],
+                rarity=planet_data['rarity'],
+                planet_type=planet_data['type'],
+                generation_number=1,
+                coord_x=planet_data['coord_x'],
+                coord_y=planet_data['coord_y'],
+                coord_z=planet_data['coord_z'],
+                discovery_number=discovery_number,
+                size_class=planet_data['size_class'],
+                value_index=planet_data['value_index'],
+                events=planet_data['events'],
+                rare_discovery=planet_data['rare_discovery']
+            )
+            db.session.add(new_planet)
+            db.session.commit()
+
+            task_store[task_id] = {
+                'status': 'complete',
+                'planet': {
+                    "image_url": planet_data["image_url"],
+                    "style_signature": planet_data["style_signature"],
+                    "name": planet_data["name"],
+                    "dna": planet_data["dna"],
+                    "seed": planet_data["seed"],
+                    "type": planet_data["type"],
+                    "atmosphere": planet_data["atmosphere"],
+                    "surface": planet_data["surface"],
+                    "gravity": planet_data["gravity"],
+                    "temperature": planet_data["temperature"],
+                    "moons": planet_data["moons"],
+                    "rings": planet_data["rings"],
+                    "star_system": planet_data["star_system"],
+                    "dominant_color": planet_data["dominant_color"],
+                    "civilization_potential": planet_data["civilization_potential"],
+                    "energy_signature": planet_data["energy_signature"],
+                    "rarity": planet_data["rarity"],
+                    "coord_x": planet_data["coord_x"],
+                    "coord_y": planet_data["coord_y"],
+                    "coord_z": planet_data["coord_z"],
+                    "size_class": planet_data["size_class"],
+                    "value_index": planet_data["value_index"],
+                    "events": planet_data["events"],
+                    "rare_discovery": planet_data["rare_discovery"],
+                    "discovery_number": discovery_number,
+                }
             }
-        }
-    except Exception as e:
-        task_store[task_id] = {'status': 'error', 'message': str(e)}
+        except Exception as e:
+            task_store[task_id] = {'status': 'error', 'message': str(e)}
 
 
 @planet_bp.route('/generate', methods=['POST'])
@@ -120,7 +124,6 @@ def generate():
     else:
         return jsonify({'error': 'payment_required'}), 402
 
-    # Start background thread
     task_id = str(uuid.uuid4())
     task_store[task_id] = {'status': 'processing'}
     thread = threading.Thread(target=run_discovery, args=(wallet_address, task_id, prompt))
@@ -140,7 +143,6 @@ def generation_status(task_id):
 
 @planet_bp.route('/save', methods=['POST'])
 def save_planet():
-    # (unchanged – same as before)
     wallet_address = request.headers.get('X-User-Id')
     if not wallet_address:
         return jsonify({'error': 'Unauthorized'}), 401
