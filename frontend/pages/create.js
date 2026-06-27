@@ -1,14 +1,10 @@
 'use client'
-import { useState, useContext, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Web3Context } from '../context/Web3Context'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import api from '../services/api'
 import Navbar from '../components/layout/Navbar'
 import SpaceBackground from '../components/animations/SpaceBackground'
 
-const COST_PER_DISCOVERY_SOL = 0.002
 const ART_STYLES = ['Cosmic', 'Sci-Fi', 'Fantasy', 'Ancient', 'Realistic', 'Cinematic']
 const CREATIVITY_LEVELS = ['Strict', 'Balanced', 'Creative']
 const LOADING_SENTENCES = [
@@ -17,20 +13,8 @@ const LOADING_SENTENCES = [
   'Discovering moons...', 'Scanning biosignatures...', 'Determining rarity...',
   'Rendering planet...', 'Planet stabilized.', 'Planet discovered.'
 ]
-const MINT_SENTENCES = [
-  "Recording Discovery...",
-  "Uploading Metadata...",
-  "Registering Planet...",
-  "Recording On Solana...",
-  "Planet Permanently Preserved...",
-  "Mint Complete."
-]
 
 export default function CreatePlanet() {
-  const { account, token, sendSolPayment } = useContext(Web3Context)
-  const { connected } = useWallet()
-  const { setVisible } = useWalletModal()
-
   const [prompt, setPrompt] = useState('')
   const [selectedStyle, setSelectedStyle] = useState('Cosmic')
   const [creativity, setCreativity] = useState('Balanced')
@@ -39,50 +23,17 @@ export default function CreatePlanet() {
   const [planetData, setPlanetData] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [freeDiscoveries, setFreeDiscoveries] = useState(3)
-  const [paidDiscoveries, setPaidDiscoveries] = useState(0)
-  const [showPayment, setShowPayment] = useState(false)
 
   const [loadingStep, setLoadingStep] = useState(-1)
   const loadingTimer = useRef(null)
   const [rarityRevealStep, setRarityRevealStep] = useState(0)
   const [showRarityText, setShowRarityText] = useState(false)
 
-  // Mint cinematic state
-  const [minting, setMinting] = useState(false)
-  const [mintStep, setMintStep] = useState(0)
-  const mintTimer = useRef(null)
-
-  // Fetch user status on mount
-  useEffect(() => {
-    if (account) {
-      api.get('/auth/status', { headers: { 'X-User-Id': account } })
-        .then(res => {
-          setFreeDiscoveries(3 - res.data.free_discoveries_used)
-          setPaidDiscoveries(res.data.paid_discoveries_available || 0)
-        })
-        .catch(() => {})
-    }
-  }, [account])
-
-  const requireConnection = () => {
-    if (!connected) { setVisible(true); return false }
-    return true
-  }
-
-  // ── Main discovery trigger ──
   const handleDiscover = () => {
-    if (!requireConnection()) return
     if (!prompt.trim()) { alert('Please describe your planet.'); return }
-
-    if (freeDiscoveries > 0 || paidDiscoveries > 0) {
-      startDiscovery()
-    } else {
-      setShowPayment(true)
-    }
+    startDiscovery()
   }
 
-  // ── Async discovery with polling ──
   const startDiscovery = async () => {
     setDiscoveryComplete(false)
     setPlanetData(null)
@@ -94,22 +45,17 @@ export default function CreatePlanet() {
     setLoadingStep(0)
 
     try {
-      // Submit generation job
-      const submitResp = await api.post('/planet/generate', { prompt }, {
-        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-      })
+      const submitResp = await api.post('/planet/generate', { prompt })
       const taskId = submitResp.data.task_id
 
-      // Run loading animation for at least a few steps
       let step = 0
       loadingTimer.current = setInterval(() => {
         step++
         if (step < LOADING_SENTENCES.length) setLoadingStep(step)
       }, 800)
 
-      // Poll for completion
       let attempts = 0
-      const maxAttempts = 30  // ≈ 60 seconds
+      const maxAttempts = 30
       let finalResult = null
 
       while (attempts < maxAttempts) {
@@ -122,9 +68,7 @@ export default function CreatePlanet() {
           } else if (statusResp.data.status === 'error') {
             throw new Error(statusResp.data.message || 'Discovery failed')
           }
-        } catch (err) {
-          // network error while polling – keep trying
-        }
+        } catch (err) {}
         attempts++
       }
 
@@ -141,14 +85,6 @@ export default function CreatePlanet() {
       setName(finalResult.name || '')
       setDiscoveryComplete(true)
 
-      // Update local counters
-      if (freeDiscoveries > 0) {
-        setFreeDiscoveries(prev => prev - 1)
-      } else if (paidDiscoveries > 0) {
-        setPaidDiscoveries(prev => prev - 1)
-      }
-
-      // Rarity reveal animation
       setRarityRevealStep(1)
       const starInterval = setInterval(() => {
         setRarityRevealStep(prev => {
@@ -169,55 +105,6 @@ export default function CreatePlanet() {
     }
   }
 
-  // ── Cinematic Mint ──
-  const handleMint = async () => {
-    if (!planetData) return
-    if (!name.trim()) { alert('Please name your planet.'); return }
-    setMinting(true)
-    setMintStep(0)
-
-    // Start minting animation
-    let step = 0
-    mintTimer.current = setInterval(() => {
-      step++
-      if (step < MINT_SENTENCES.length - 1) {
-        setMintStep(step)
-      } else {
-        clearInterval(mintTimer.current)
-      }
-    }, 1200)
-
-    // Wait for animation to finish, then call save endpoint
-    setTimeout(async () => {
-      try {
-        await api.post('/planet/save', {
-          image_url: planetData.image_url,
-          name,
-          description,
-          style_signature: planetData.style_signature,
-        }, { headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` } })
-        // Show final mint step
-        setMintStep(MINT_SENTENCES.length - 1)
-        setTimeout(() => {
-          setMinting(false)
-          setMintStep(0)
-          alert('Planet minted successfully!')
-          setDiscoveryComplete(false)
-          setPlanetData(null)
-          setName('')
-          setDescription('')
-          setPrompt('')
-        }, 1500)
-      } catch (err) {
-        clearInterval(mintTimer.current)
-        setMinting(false)
-        setMintStep(0)
-        alert('Failed to mint planet.')
-      }
-    }, 1200 * MINT_SENTENCES.length)
-  }
-
-  // ── Discard ──
   const handleDiscard = () => {
     setDiscoveryComplete(false)
     setPlanetData(null)
@@ -225,25 +112,6 @@ export default function CreatePlanet() {
     setDescription('')
   }
 
-  // ── Payment for one discovery ──
-  const handlePurchaseDiscovery = async () => {
-    setShowPayment(false)
-    setLoading(true)
-    try {
-      const signature = await sendSolPayment(COST_PER_DISCOVERY_SOL)
-      if (!signature) throw new Error('Payment failed')
-      await api.post('/payment/purchase-discovery', { signature }, {
-        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-      })
-      setPaidDiscoveries(prev => prev + 1)
-      startDiscovery()
-    } catch (err) {
-      alert('Transaction failed: ' + (err.message || err))
-      setLoading(false)
-    }
-  }
-
-  // ── Helper data for UI ──
   const currentImageUrl = planetData?.image_url || ''
   const generatedName = name || planetData?.name || 'Unnamed World'
   const rarity = planetData?.rarity || 'Common'
@@ -253,8 +121,7 @@ export default function CreatePlanet() {
       <SpaceBackground />
       <Navbar />
       <main className="pt-20 px-4 md:px-8 pb-20">
-        {/* ---------- DISCOVERY FORM (no planet yet) ---------- */}
-        {!discoveryComplete && !loading && !minting && (
+        {!discoveryComplete && !loading && (
           <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
@@ -283,13 +150,6 @@ export default function CreatePlanet() {
                   {creativity === 'Creative' && 'Allows the universe to surprise you.'}
                 </p>
               </div>
-              <p className="text-sm text-gray-400">
-                {connected
-                  ? <>Free Discoveries: <span className="text-purple-300">{freeDiscoveries}</span></>
-                  : 'Connect wallet to discover.'
-                }
-                {paidDiscoveries > 0 && <span className="ml-2 text-green-300">(+{paidDiscoveries} paid)</span>}
-              </p>
               <button onClick={handleDiscover} disabled={loading} className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition disabled:opacity-50">
                 Discover Planet
               </button>
@@ -308,7 +168,6 @@ export default function CreatePlanet() {
           </div>
         )}
 
-        {/* ---------- CINEMATIC LOADING ---------- */}
         {loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
             <div className="space-y-2 text-center max-w-md">
@@ -319,19 +178,7 @@ export default function CreatePlanet() {
           </motion.div>
         )}
 
-        {/* ---------- CINEMATIC MINT ---------- */}
-        {minting && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
-            <div className="space-y-2 text-center max-w-md">
-              {MINT_SENTENCES.map((s, i) => (
-                <motion.p key={i} initial={{ opacity: 0, y: 10 }} animate={i <= mintStep ? { opacity: 1, y: 0 } : {}} className={`text-lg ${i === mintStep ? 'text-purple-300 font-semibold' : 'text-gray-500'}`}>{s}</motion.p>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ---------- DISCOVERY COMPLETE ---------- */}
-        {discoveryComplete && !loading && !minting && planetData && (
+        {discoveryComplete && !loading && planetData && (
           <div className="max-w-4xl mx-auto space-y-10">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="relative flex flex-col items-center">
@@ -350,24 +197,16 @@ export default function CreatePlanet() {
                     <motion.p initial={{ scale: 0, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{rarity}</motion.p>
                   )}
                 </div>
-                <div className="mt-6 w-full max-w-md space-y-3">
-                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Name your planet..." className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Add a short description (optional)..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
-                </div>
               </div>
               <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="glass p-6 rounded-2xl border border-white/10 space-y-4">
                 <h2 className="text-2xl font-bold text-gradient">PLANET PASSPORT</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
                     ['Name', generatedName],
-                    ['Discovery #', planetData?.discovery_number],
                     ['Planet DNA', planetData?.dna],
                     ['Size', planetData?.size_class],
                     ['Value Index', `${planetData?.value_index}/100`],
                     ['Universe Sector', 'NGC-224'],
-                    ['Discovery Time', new Date().toLocaleString()],
-                    ['Discovered By', connected ? account.slice(0, 6) + '...' : 'Unknown'],
-                    ['Generation #', '1'],
                     ['Seed', planetData?.seed],
                     ['Events', planetData?.events || 'None'],
                     ['Rare Discovery', planetData?.rare_discovery || 'None']
@@ -418,9 +257,6 @@ export default function CreatePlanet() {
               <button onClick={handleDiscover} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition">
                 Discover Another Planet
               </button>
-              <button onClick={handleMint} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition">
-                Mint Planet 🚀
-              </button>
               <button onClick={handleDiscard} className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition">
                 Discard
               </button>
@@ -428,23 +264,6 @@ export default function CreatePlanet() {
           </div>
         )}
       </main>
-
-      {/* ---------- Payment Modal ---------- */}
-      <AnimatePresence>
-        {showPayment && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowPayment(false)}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} className="bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center border border-white/10" onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-bold mb-2">Expedition Limit Reached</h3>
-              <p className="text-gray-300 mb-1">Your exploration vessel has reached the limit of its free expeditions.</p>
-              <p className="text-gray-400 mb-4">You have successfully discovered three planets.</p>
-              <p className="text-gray-200 font-semibold">Unlock another expedition for only <span className="text-purple-300">{COST_PER_DISCOVERY_SOL} SOL</span> and continue exploring the universe.</p>
-              <button onClick={handlePurchaseDiscovery} className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition">
-                Discover Another Planet — {COST_PER_DISCOVERY_SOL} SOL
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
