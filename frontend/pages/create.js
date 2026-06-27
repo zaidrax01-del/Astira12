@@ -45,58 +45,46 @@ export default function CreatePlanet() {
     setLoadingStep(0)
 
     try {
-      const submitResp = await api.post('/planet/generate', { prompt })
-      const taskId = submitResp.data.task_id
-
+      // Start loading animation
       let step = 0
       loadingTimer.current = setInterval(() => {
         step++
         if (step < LOADING_SENTENCES.length) setLoadingStep(step)
       }, 800)
 
-      let attempts = 0
-      const maxAttempts = 30
-      let finalResult = null
-
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        try {
-          const statusResp = await api.get(`/planet/generate/status/${taskId}`)
-          if (statusResp.data.status === 'complete') {
-            finalResult = statusResp.data.planet
-            break
-          } else if (statusResp.data.status === 'error') {
-            throw new Error(statusResp.data.message || 'Discovery failed')
-          }
-        } catch (err) {}
-        attempts++
-      }
+      // Synchronous request – waits for complete response
+      const resp = await api.post('/planet/generate', { prompt })
 
       clearInterval(loadingTimer.current)
+
+      // Show final loading step briefly
+      setLoadingStep(LOADING_SENTENCES.length - 1)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       setLoading(false)
       setLoadingStep(-1)
 
-      if (!finalResult) {
-        alert('Discovery timed out. Please try again.')
-        return
+      if (resp.data && resp.data.planet) {
+        const finalResult = resp.data.planet
+        setPlanetData(finalResult)
+        setName(finalResult.name || '')
+        setDiscoveryComplete(true)
+
+        // Rarity reveal animation
+        setRarityRevealStep(1)
+        const starInterval = setInterval(() => {
+          setRarityRevealStep(prev => {
+            if (prev >= 5) {
+              clearInterval(starInterval)
+              setTimeout(() => setShowRarityText(true), 300)
+              return 6
+            }
+            return prev + 1
+          })
+        }, 500)
+      } else {
+        alert('Discovery failed. Please try again.')
       }
-
-      setPlanetData(finalResult)
-      setName(finalResult.name || '')
-      setDiscoveryComplete(true)
-
-      setRarityRevealStep(1)
-      const starInterval = setInterval(() => {
-        setRarityRevealStep(prev => {
-          if (prev >= 5) {
-            clearInterval(starInterval)
-            setTimeout(() => setShowRarityText(true), 300)
-            return 6
-          }
-          return prev + 1
-        })
-      }, 500)
-
     } catch (err) {
       clearInterval(loadingTimer.current)
       setLoading(false)
