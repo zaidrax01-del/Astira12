@@ -82,7 +82,7 @@ export default function CreatePlanet() {
     }
   }
 
-  // ── Actual API call (after eligibility check) ──
+  // ── Async discovery with polling ──
   const startDiscovery = async () => {
     setDiscoveryComplete(false)
     setPlanetData(null)
@@ -93,61 +93,80 @@ export default function CreatePlanet() {
     setLoading(true)
     setLoadingStep(0)
 
-    let apiResult = null
-    const apiPromise = api.post('/planet/generate', { prompt }, {
-      headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
-    }).then(res => {
-      if (res.data && res.data.planet) {
-        apiResult = res.data.planet
-      } else {
-        apiResult = { error: true }
-      }
-    }).catch(() => { apiResult = { error: true } })
+    try {
+      // Submit generation job
+      const submitResp = await api.post('/planet/generate', { prompt }, {
+        headers: { 'X-User-Id': account, 'Authorization': `Bearer ${token}` }
+      })
+      const taskId = submitResp.data.task_id
 
-    let step = 0
-    loadingTimer.current = setInterval(() => {
-      step++
-      if (step < LOADING_SENTENCES.length) setLoadingStep(step)
-      else {
-        clearInterval(loadingTimer.current)
-        finalizeDiscovery(apiResult)
-      }
-    }, 800)
-  }
+      // Run loading animation for at least a few steps
+      let step = 0
+      loadingTimer.current = setInterval(() => {
+        step++
+        if (step < LOADING_SENTENCES.length) setLoadingStep(step)
+      }, 800)
 
-  const finalizeDiscovery = async (apiResult) => {
-    while (apiResult === null) await new Promise(resolve => setTimeout(resolve, 200))
-    if (!apiResult || apiResult.error) {
+      // Poll for completion
+      let attempts = 0
+      const maxAttempts = 30  // ≈ 60 seconds
+      let finalResult = null
+
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        try {
+          const statusResp = await api.get(`/planet/generate/status/${taskId}`)
+          if (statusResp.data.status === 'complete') {
+            finalResult = statusResp.data.planet
+            break
+          } else if (statusResp.data.status === 'error') {
+            throw new Error(statusResp.data.message || 'Discovery failed')
+          }
+        } catch (err) {
+          // network error while polling – keep trying
+        }
+        attempts++
+      }
+
+      clearInterval(loadingTimer.current)
+      setLoading(false)
+      setLoadingStep(-1)
+
+      if (!finalResult) {
+        alert('Discovery timed out. Please try again.')
+        return
+      }
+
+      setPlanetData(finalResult)
+      setName(finalResult.name || '')
+      setDiscoveryComplete(true)
+
+      // Update local counters
+      if (freeDiscoveries > 0) {
+        setFreeDiscoveries(prev => prev - 1)
+      } else if (paidDiscoveries > 0) {
+        setPaidDiscoveries(prev => prev - 1)
+      }
+
+      // Rarity reveal animation
+      setRarityRevealStep(1)
+      const starInterval = setInterval(() => {
+        setRarityRevealStep(prev => {
+          if (prev >= 5) {
+            clearInterval(starInterval)
+            setTimeout(() => setShowRarityText(true), 300)
+            return 6
+          }
+          return prev + 1
+        })
+      }, 500)
+
+    } catch (err) {
+      clearInterval(loadingTimer.current)
       setLoading(false)
       setLoadingStep(-1)
       alert('Discovery failed. Please try again.')
-      return
     }
-    setPlanetData(apiResult)
-    setName(apiResult.name || '')
-    setLoading(false)
-    setLoadingStep(-1)
-    setDiscoveryComplete(true)
-
-    // Update local counters
-    if (freeDiscoveries > 0) {
-      setFreeDiscoveries(prev => prev - 1)
-    } else if (paidDiscoveries > 0) {
-      setPaidDiscoveries(prev => prev - 1)
-    }
-
-    // Rarity reveal animation
-    setRarityRevealStep(1)
-    const starInterval = setInterval(() => {
-      setRarityRevealStep(prev => {
-        if (prev >= 5) {
-          clearInterval(starInterval)
-          setTimeout(() => setShowRarityText(true), 300)
-          return 6
-        }
-        return prev + 1
-      })
-    }, 500)
   }
 
   // ── Cinematic Mint ──
