@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from models import db, User, Planet
 from services.universe_engine import discover_planet
 from services.lineage_service import check_derivative
@@ -10,20 +10,13 @@ import threading
 planet_bp = Blueprint('planet', __name__)
 task_store = {}
 
-def run_discovery(wallet_address, task_id, prompt):
-    """Runs in a background thread with its own DB session."""
-    from app import create_app
-    app = create_app()
+def run_discovery(app, wallet_address, task_id, prompt):
+    """Runs in background – uses the existing app."""
     with app.app_context():
         try:
             user = User.query.filter_by(wallet_address=wallet_address).first()
             if not user:
                 task_store[task_id] = {'status': 'error', 'message': 'Explorer not found'}
-                return
-
-            # Decrement counters (already done in main route, but we re‑check)
-            if user.free_discoveries_used > 3 and user.paid_discoveries_available <= 0:
-                task_store[task_id] = {'status': 'error', 'message': 'No discoveries remaining'}
                 return
 
             planet_data = discover_planet(prompt)
@@ -126,7 +119,10 @@ def generate():
 
     task_id = str(uuid.uuid4())
     task_store[task_id] = {'status': 'processing'}
-    thread = threading.Thread(target=run_discovery, args=(wallet_address, task_id, prompt))
+
+    # Grab the real Flask app (not a new one)
+    app = current_app._get_current_object()
+    thread = threading.Thread(target=run_discovery, args=(app, wallet_address, task_id, prompt))
     thread.daemon = True
     thread.start()
 
