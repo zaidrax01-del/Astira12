@@ -7,9 +7,10 @@ planet_bp = Blueprint('planet', __name__)
 def generate():
     data = request.get_json()
     prompt = data.get('prompt', '')
+    art_style = data.get('art_style', 'Cosmic')
+    creativity = data.get('creativity', 'Balanced')
 
-    # Discover the planet (metadata + AI image)
-    planet_data = discover_planet(prompt)
+    planet_data = discover_planet(prompt, art_style, creativity)
     if not planet_data:
         return jsonify({'error': 'Discovery failed'}), 500
 
