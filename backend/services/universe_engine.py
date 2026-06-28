@@ -23,6 +23,23 @@ RARE_DISCOVERIES = [
     "Unknown Energy Source"
 ]
 
+# Style modifiers for AI prompt
+STYLE_MODIFIERS = {
+    "Cosmic": "deep space, nebula background, cosmic dust, astrophotography",
+    "Sci-Fi": "futuristic, neon lights, cyberpunk elements, holographic atmosphere",
+    "Fantasy": "magical, mythical, glowing runes, enchanted atmosphere, ancient magic",
+    "Ancient": "ruins, ancient civilization, stone formations, mystical artifacts, old world",
+    "Realistic": "photorealistic, NASA style, hyperrealistic, natural lighting, true colors",
+    "Cinematic": "dramatic lighting, movie quality, epic composition, atmospheric haze, 8K"
+}
+
+# Creativity modifiers
+CREATIVITY_MODIFIERS = {
+    "Strict": "strictly follow the description, no extra elements, exactly as described",
+    "Balanced": "use the description as inspiration, add some cosmic variety",
+    "Creative": "take inspiration from the description, be wildly creative and unexpected"
+}
+
 # Keyword → (type, surface, atmosphere, dominant_color)
 KEYWORD_MAP = {
     "fire": ("Lava World", "Molten", "Sulphuric Clouds", "Crimson"),
@@ -48,14 +65,14 @@ KEYWORD_MAP = {
     "lightning": ("Iron Planet", "Metallic", "Ionized Plasma", "Purple"),
     "storm": ("Iron Planet", "Metallic", "Ionized Plasma", "Purple"),
     "gas": ("Gas Dwarf", "Metallic", "Methane Haze", "Amber"),
-    "ring": (None, None, None, None),  # special – just adds rings
+    "ring": (None, None, None, None),
 }
 
 def _seed_from_prompt(prompt: str) -> str:
     base = prompt + str(datetime.datetime.utcnow().timestamp())
     return hashlib.sha256(base.encode()).hexdigest()[:16]
 
-def discover_planet(prompt: str):
+def discover_planet(prompt: str, art_style: str = "Cosmic", creativity: str = "Balanced"):
     api_key = current_app.config.get('MODELS_LAB_API_KEY')
     if not api_key:
         return None
@@ -80,9 +97,8 @@ def discover_planet(prompt: str):
                 detected_color = pcolor
             elif keyword == "ring":
                 wants_rings = True
-            break  # use the first matching keyword
+            break
 
-    # If nothing detected, keep random
     size_class = rng.choice(SIZE_CLASSES)
     size_factors = {
         "Tiny": (0.1, 0.3), "Small": (0.3, 0.6), "Medium": (0.6, 1.2),
@@ -124,15 +140,20 @@ def discover_planet(prompt: str):
          (0.1 if planet["energy_signature"] in ["High", "Anomalous"] else 0)) * 50, 1
     )
 
-    # Craft AI prompt – user's description FIRST, then metadata
+    # Build the AI prompt – user description first, then style, creativity, NFT quality
+    style_modifier = STYLE_MODIFIERS.get(art_style, STYLE_MODIFIERS["Cosmic"])
+    creativity_modifier = CREATIVITY_MODIFIERS.get(creativity, CREATIVITY_MODIFIERS["Balanced"])
+
     ai_prompt = (
-        f"cinematic 4K space art of a planet: {prompt}. "
+        f"NFT-quality digital art of a planet: {prompt}. "
+        f"{creativity_modifier}. "
         f"A {planet['size_class'].lower()} {planet['type'].lower()} with {planet['surface'].lower()} surface, "
         f"{planet['atmosphere']} atmosphere, "
         f"dominant color {planet['dominant_color'].lower()}, "
         f"orbiting a {planet['star_system']}, "
-        f"with {planet['moons']} moons, {planet['rings'].lower()}, "
-        f"astro photography, hyperrealistic, NASA style, isolated planet, no background text"
+        f"with {planet['moons']} moons, {planet['rings'].lower()}. "
+        f"{style_modifier}. "
+        f"Suitable for NFT minting, collectible digital asset, clean background, no text, no watermarks."
     )
 
     images = generate_planet_images(ai_prompt, 1)
